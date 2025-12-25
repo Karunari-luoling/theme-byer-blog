@@ -453,7 +453,7 @@ const goToTagPage = (tagName: string) => {
   }
 }
 
-@media screen and (width > 760px) and (width <= 992px) {
+@media screen and (width > 768px) and (width <= 992px) {
   .main-content .recent-post-item {
     .post_cover {
       width: 40%;

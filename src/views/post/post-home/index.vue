@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { ref, reactive, watch, computed, onMounted } from "vue";
 import { useRoute } from "vue-router";
-import HomeTop from "./components/HomeTop/index.vue";
+// import HomeTop from "./components/HomeTop/index.vue";
 import EssayBar from "./components/EssayBar/index.vue";
 import CategoryBar from "./components/CategoryBar/index.vue";
 import TagBar from "./components/TagBar/index.vue";
+import RecommendedSection from "./components/RecommendedSection/index.vue";
 import ArticleCard from "./components/ArticleCard/index.vue";
 import ArticleCardSkeleton from "./components/ArticleCardSkeleton/index.vue";
 import Archives from "./components/Archives/index.vue";
@@ -116,15 +117,20 @@ onMounted(() => {
     <EssayBar v-if="showHomeTop" />
 
     <!-- 首页顶部区域 -->
-    <div v-if="showHomeTop" class="post-home-top-container">
+    <!-- <div v-if="showHomeTop" class="post-home-top-container">
       <HomeTop />
-    </div>
+    </div> -->
 
     <div id="content-inner" class="layout">
+      <Sidebar />
+
       <main class="main-content">
         <!-- 分类/标签导航栏 -->
         <CategoryBar v-if="isHomePage || pageType === 'category'" />
         <TagBar v-else-if="pageType === 'tag'" />
+
+        <!-- 推荐文章区域 -->
+        <RecommendedSection v-if="showHomeTop" />
 
         <!-- 文章列表区域 -->
         <div
@@ -180,22 +186,20 @@ onMounted(() => {
           @current-change="handlePageChange"
         />
       </main>
-
-      <Sidebar />
     </div>
   </div>
 </template>
 
 <style lang="scss" scoped>
-.post-home-top-container {
-  width: 100%;
-  max-width: 1400px;
-  padding: 0 1.5rem;
-  margin: 0 auto;
-  overflow: hidden;
-  user-select: none;
-  animation: slide-in 0.6s 0.1s backwards;
-}
+// .post-home-top-container {
+//   width: 100%;
+//   max-width: 1400px;
+//   padding: 0 1.5rem;
+//   margin: 0 auto;
+//   overflow: hidden;
+//   user-select: none;
+//   animation: slide-in 0.6s 0.1s backwards;
+// }
 
 .layout {
   display: flex;
@@ -240,9 +244,9 @@ onMounted(() => {
   }
 }
 
-@media (width <= 768px) {
-  .post-home-top-container {
-    padding: 0 1rem;
-  }
-}
+// @media (width <= 768px) {
+//   .post-home-top-container {
+//     padding: 0 1rem;
+//   }
+// }
 </style>
