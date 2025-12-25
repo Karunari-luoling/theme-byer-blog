@@ -313,7 +313,7 @@ const goToTagPage = (tagName: string) => {
 .recent-post-item.double-column-item {
   flex-direction: column;
   align-items: flex-start;
-  width: calc(50% - 0.3125rem);
+  width: calc(33.333% - 0.417rem);
   height: auto;
 
   .post_cover {
@@ -327,17 +327,34 @@ const goToTagPage = (tagName: string) => {
     flex-grow: 1;
     flex-direction: column;
     width: 100%;
-    padding: 18px 32px;
+    padding: 16px 20px;
 
     .recent-post-info-top {
       .article-title {
         margin-top: 0.5rem;
-        font-size: 1.3rem;
+        font-size: 1.1rem;
       }
     }
 
     .article-meta-wrap {
       margin-top: auto;
+    }
+  }
+}
+
+// 992px - 1200px 双栏布局
+@media screen and (width > 992px) and (width <= 1200px) {
+  .recent-post-item.double-column-item {
+    width: calc(50% - 0.3125rem);
+
+    .recent-post-info {
+      padding: 18px 32px;
+
+      .recent-post-info-top {
+        .article-title {
+          font-size: 1.3rem;
+        }
+      }
     }
   }
 }

@@ -1,0 +1,24 @@
+{
+  "name": "theme-byer-blog",
+  "displayName": "白夜的博客主题",
+  "version": "1.0.0",
+  "description": "这是基因鱼鱼主题的魔改版。",
+  "author": {
+    "name": "白夜",
+    "email": "thunder_luoling@outlook.com",
+    "url": "https://blog.byer.top"
+  },
+  "license": "MIT",
+  "homepage": "https://github.com/Karunari-luoling/theme-byer-blog",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Karunari-luoling/theme-byer-blog.git"
+  },
+  "keywords": ["博客", "响应式", "现代化", "简洁"],
+  "category": "blog",
+  "screenshots": "https://upload-bbs.miyoushe.com/upload/2025/09/18/125766904/359dbf5b0ce07e56a960b31063c44280_4491727436207297404.png",
+  "engines": {
+    "anheyu": ">=1.0.0"
+  },
+  "features": ["responsive-design", "dark-mode", "seo-friendly", "customizable-colors"]
+}

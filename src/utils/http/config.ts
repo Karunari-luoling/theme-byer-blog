@@ -15,7 +15,7 @@ if (process.env.NODE_ENV === "production") {
     if (url.startsWith("/")) {
       return `/api${url}`;
     } else {
-      return `/api/${url}`;
+      return `https://blog.byer.top/api/${url}`;
     }
   };
 } else {
@@ -23,7 +23,7 @@ if (process.env.NODE_ENV === "production") {
     if (url.startsWith("/")) {
       return `/api${url}`;
     } else {
-      return `/api/${url}`;
+      return `https://blog.byer.top/api/${url}`;
     }
   };
 }
