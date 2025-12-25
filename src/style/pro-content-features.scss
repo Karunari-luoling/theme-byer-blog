@@ -1,0 +1,1226 @@
+// anheyu-pro 特有的前台内容功能样式
+// 包含：付费内容、密码保护内容等专业版特有功能
+
+// ====== 付费内容样式 ======
+.paid-content-editor-preview {
+  margin: 1rem 0;
+  overflow: hidden;
+  background: var(--anzhiyu-card-bg);
+  border: var(--style-border-always);
+  border-radius: 12px;
+  box-shadow: var(--anzhiyu-shadow-border);
+  transition: all 0.3s;
+
+  .paid-original-price-badge {
+    --this-color: #fff;
+    --this-bg: #fe3459;
+
+    top: 5px;
+    z-index: 1;
+    display: inline-block;
+    min-width: 0.8em;
+    min-height: 0.8em;
+    padding: 0.1em 0.4em;
+    font-size: 0.8em;
+    line-height: 1.2;
+    color: var(--this-color);
+    text-align: center;
+    vertical-align: 0.1em;
+    background: var(--this-bg);
+    border-radius: 50px;
+
+    i {
+      font-size: 0.7rem;
+      text-align: center;
+    }
+  }
+
+  &:hover {
+    border-color: var(--anzhiyu-main);
+    box-shadow: var(--anzhiyu-shadow-main);
+  }
+
+  .paid-content-header {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    background: var(--anzhiyu-secondbg);
+    border-bottom: var(--style-border-always);
+
+    .paid-icon {
+      line-height: 1;
+
+      .md-editor-icon {
+        width: 1.5em;
+        height: 1.5em;
+        vertical-align: middle;
+      }
+
+      svg path[fill="#FFFFFF"] {
+        fill: var(--anzhiyu-white);
+      }
+    }
+
+    .paid-title {
+      font-size: 1.05em;
+      font-weight: 600;
+      color: var(--anzhiyu-fontcolor);
+    }
+
+    .paid-price,
+    .paid-price-group {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+      margin-left: auto;
+    }
+
+    .purchased-badge {
+      display: flex;
+      align-items: center;
+      font-size: 1rem;
+      font-weight: 700;
+      line-height: 1;
+      color: #3578f5;
+
+      .purchased-badge-icon {
+        width: 22px;
+        height: 22px;
+      }
+    }
+
+    .paid-price,
+    .paid-current-price {
+      font-size: 1.8em;
+      font-weight: 700;
+      line-height: 1;
+      color: var(--anzhiyu-red);
+    }
+
+    .paid-current-price {
+      display: flex;
+      gap: 2px;
+      align-items: baseline;
+    }
+
+    .paid-current-price-currency {
+      font-size: 0.6em;
+      text-align: right;
+    }
+
+    .paid-original-price {
+      margin-right: 4px;
+      font-size: 0.7em;
+      font-weight: 400;
+      color: var(--anzhiyu-secondtext);
+      text-align: right;
+      text-decoration: line-through;
+      opacity: 0.7;
+    }
+
+    .paid-header-actions {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+      margin-left: auto;
+    }
+
+    .paid-settings-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      padding: 0;
+      font-size: 1rem;
+      color: var(--anzhiyu-fontcolor);
+      cursor: pointer;
+      background: var(--anzhiyu-card-bg);
+      border: var(--style-border-always);
+      border-radius: 6px;
+      transition: all 0.3s ease;
+
+      i {
+        font-size: 0.9rem;
+      }
+
+      &:hover {
+        color: var(--anzhiyu-main);
+        background: var(--anzhiyu-secondbg);
+        border-color: var(--anzhiyu-main);
+      }
+
+      &:active {
+        transform: scale(0.95);
+      }
+    }
+  }
+
+  .paid-content-body {
+    padding: 0 1rem;
+
+    .paid-content-preview,
+    .paid-content-editor-body {
+      padding: 1rem 0;
+
+      & > :first-child {
+        margin-top: 0;
+      }
+
+      & > :last-child {
+        margin-bottom: 0;
+      }
+    }
+
+    .paid-content-meta {
+      padding: 0.5rem 0 0.75rem;
+      font-size: 0.85em;
+      color: var(--anzhiyu-secondtext);
+      text-align: right;
+
+      .content-length {
+        color: var(--anzhiyu-secondtext);
+      }
+    }
+  }
+}
+
+.paid-content-placeholder {
+  position: relative;
+  padding: 2.5rem 1.5rem;
+  margin: 2rem 0;
+  overflow: hidden;
+  text-align: center;
+  background: var(--anzhiyu-secondbg);
+  border: var(--style-border-always);
+  border-radius: 12px;
+  box-shadow: var(--anzhiyu-shadow-border);
+
+  &::before {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    content: "";
+    background: linear-gradient(135deg, hsl(0deg 0% 100% / 5%), transparent);
+  }
+
+  > * {
+    position: relative;
+    z-index: 2;
+  }
+
+  .placeholder-icon {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 1rem;
+    color: var(--anzhiyu-main);
+
+    svg {
+      width: 48px;
+      height: 48px;
+    }
+  }
+
+  .placeholder-description {
+    margin: 0 0 1.5rem;
+    font-size: 1rem;
+    color: var(--anzhiyu-secondtext);
+    text-align: center;
+  }
+
+  .placeholder-purchase-area {
+    .purchase-btn {
+      display: inline-flex;
+      gap: 0.75rem;
+      align-items: center;
+      padding: 0.8rem 2rem;
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--anzhiyu-white);
+      cursor: pointer;
+      background: var(--anzhiyu-main);
+      border: none;
+      border-radius: 50px;
+      box-shadow: var(--anzhiyu-shadow-lightblack);
+      transition: all 0.3s ease;
+
+      &:hover {
+        box-shadow: var(--anzhiyu-shadow-main);
+        transform: translateY(-2px);
+      }
+
+      .btn-text {
+        line-height: 1;
+      }
+
+      .btn-price {
+        display: inline-flex;
+        display: none;
+        gap: 0.4rem;
+        align-items: baseline;
+        padding: 0.3rem 0.7rem;
+        line-height: 1;
+        background-color: rgb(0 0 0 / 15%);
+        border-radius: 50px;
+
+        .paid-current-price {
+          font-size: 0.9em;
+          font-weight: 600;
+        }
+
+        s.paid-original-price {
+          font-size: 0.8em;
+          font-weight: 400;
+          opacity: 0.8;
+        }
+      }
+    }
+  }
+
+  .placeholder-query-area {
+    margin-top: 1rem;
+    text-align: center;
+
+    .query-order-link {
+      font-size: 0.9rem;
+      color: var(--anzhiyu-secondtext);
+      cursor: pointer;
+      border-bottom: 1px dashed var(--anzhiyu-lighttext) !important;
+      transition: all 0.2s ease;
+
+      &:hover {
+        color: var(--anzhiyu-main);
+        border-bottom-color: var(--anzhiyu-main) !important;
+      }
+    }
+  }
+}
+
+.paid-content-unlocked {
+  margin: 1rem 0;
+  overflow: hidden;
+  background: var(--anzhiyu-card-bg);
+  border: var(--style-border-always);
+  border-radius: 12px;
+  box-shadow: var(--anzhiyu-shadow-border);
+
+  .paid-content-header {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    background: var(--anzhiyu-secondbg);
+    border-bottom: var(--style-border-always);
+
+    .unlock-badge {
+      font-weight: 600;
+      color: var(--anzhiyu-main);
+    }
+
+    .unlock-title {
+      margin-left: auto;
+      font-size: 0.9em;
+      font-weight: 600;
+      color: var(--anzhiyu-secondtext);
+    }
+  }
+
+  .paid-content-body {
+    padding: 1rem 1.5rem;
+
+    > :first-child {
+      margin-top: 0;
+    }
+
+    > :last-child {
+      margin-bottom: 0;
+    }
+  }
+}
+
+// ====== 密码保护内容统一基础样式 ======
+.password-content-editor-preview,
+.password-content-locked-view,
+.password-content-unlocked {
+  margin: 1rem 0;
+  overflow: hidden;
+  background: var(--anzhiyu-card-bg);
+  border: var(--style-border-always);
+  border-radius: 12px;
+  box-shadow: var(--anzhiyu-shadow-border);
+  transition: all 0.3s ease;
+
+  &:hover {
+    border-color: var(--anzhiyu-main);
+  }
+
+  .password-content-header {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    background: var(--anzhiyu-secondbg);
+    border-bottom: var(--style-border-always);
+
+    .password-icon {
+      line-height: 1;
+
+      .md-editor-icon {
+        width: 1.5em;
+        height: 1.5em;
+        vertical-align: middle;
+      }
+
+      svg path[fill="#5470C6"] {
+        fill: var(--anzhiyu-main);
+      }
+    }
+
+    .password-title {
+      font-size: 1.05em;
+      font-weight: 600;
+      color: var(--anzhiyu-fontcolor);
+    }
+  }
+
+  .password-content-body {
+    padding: 1rem 1.5rem;
+
+    > :first-child {
+      margin-top: 0;
+    }
+
+    > :last-child {
+      margin-bottom: 0;
+    }
+  }
+}
+
+// 密码保护内容编辑器预览样式的特有样式
+.password-content-editor-preview {
+  .password-content-header {
+    .password-header-actions {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+      margin-left: auto;
+    }
+
+    .password-pro-badge {
+      padding: 0.2em 0.6em;
+      font-size: 0.7em;
+      font-weight: 700;
+      color: var(--anzhiyu-white);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      background: var(--anzhiyu-main);
+      border-radius: 12px;
+      box-shadow: var(--anzhiyu-shadow-lightblack);
+    }
+
+    .password-settings-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      padding: 0;
+      color: var(--anzhiyu-main);
+      cursor: pointer;
+      background: transparent;
+      border: 1px solid var(--anzhiyu-main);
+      border-radius: 6px;
+      transition: all 0.3s ease;
+
+      i {
+        font-size: 14px;
+      }
+
+      &:hover {
+        color: var(--anzhiyu-white);
+        background: var(--anzhiyu-main);
+        transform: scale(1.05);
+      }
+
+      &:active {
+        transform: scale(0.95);
+      }
+    }
+  }
+
+  .password-content-body {
+    padding: 0 1rem;
+
+    .password-content-preview {
+      padding: 1rem 0;
+
+      & > :first-child {
+        margin-top: 0;
+      }
+
+      & > :last-child {
+        margin-bottom: 0;
+      }
+    }
+
+    .password-content-locked {
+      position: relative;
+      padding: 2rem 1.5rem;
+      margin: 2rem 0;
+      overflow: hidden;
+      text-align: center;
+      background: var(--anzhiyu-secondbg);
+      border: var(--style-border-always);
+      border-radius: 12px;
+      box-shadow: var(--anzhiyu-shadow-border);
+
+      &::before {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        content: "";
+        background: linear-gradient(
+          135deg,
+          hsl(0deg 0% 100% / 5%),
+          transparent
+        );
+      }
+
+      > * {
+        position: relative;
+        z-index: 2;
+      }
+
+      .password-input-container {
+        display: flex;
+        gap: 0.75rem;
+        max-width: 350px;
+        margin: 0 auto;
+
+        .password-input {
+          flex: 1;
+          padding: 0.75rem 1rem;
+          font-size: 1rem;
+          color: var(--anzhiyu-fontcolor);
+          background: var(--anzhiyu-card-bg);
+          border: var(--style-border-always);
+          border-radius: 8px;
+          outline: none;
+          transition: all 0.3s ease;
+
+          &:focus {
+            border-color: var(--anzhiyu-main);
+            box-shadow: 0 0 0 3px rgba(var(--anzhiyu-main-rgb), 0.1);
+          }
+
+          &::placeholder {
+            color: var(--anzhiyu-secondtext);
+          }
+
+          &.error {
+            border-color: var(--anzhiyu-red);
+            box-shadow: 0 0 0 3px rgb(255 0 0 / 10%);
+          }
+        }
+
+        .password-verify-btn {
+          display: inline-flex;
+          gap: 0.5rem;
+          align-items: center;
+          justify-content: center;
+          min-width: 100px;
+          padding: 0.75rem 1.5rem;
+          font-size: 1rem;
+          font-weight: 600;
+          color: var(--anzhiyu-white);
+          cursor: pointer;
+          background: var(--anzhiyu-main);
+          border: none;
+          border-radius: 8px;
+          box-shadow: var(--anzhiyu-shadow-lightblack);
+          transition: all 0.3s ease;
+
+          &:hover:not(:disabled) {
+            box-shadow: var(--anzhiyu-shadow-main);
+            transform: translateY(-2px);
+          }
+
+          &:disabled {
+            cursor: not-allowed;
+            opacity: 0.6;
+            transform: none;
+          }
+
+          .btn-loading {
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgb(255 255 255 / 30%);
+            border-top: 2px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+          }
+
+          .btn-text {
+            line-height: 1;
+          }
+        }
+      }
+
+      .password-hint {
+        margin-top: 1rem;
+        font-size: 0.9rem;
+        line-height: 1.5;
+        color: var(--anzhiyu-secondtext);
+      }
+
+      .password-error {
+        display: none;
+        padding: 0.5rem 1rem;
+        margin-top: 0.75rem;
+        font-size: 0.9rem;
+        color: var(--anzhiyu-red);
+        background: rgb(255 0 0 / 10%);
+        border: 1px solid rgb(255 0 0 / 20%);
+        border-radius: 6px;
+
+        &.show {
+          display: block;
+        }
+      }
+    }
+
+    .password-content-meta {
+      display: flex;
+      gap: 1rem;
+      justify-content: flex-end;
+      padding-bottom: 0.75rem;
+      font-size: 0.8em;
+      color: var(--anzhiyu-secondtext);
+      text-align: right;
+
+      .content-length::before {
+        content: "字数: ";
+      }
+
+      .password-protection-info {
+        font-weight: 500;
+        color: var(--anzhiyu-main);
+      }
+    }
+  }
+}
+
+// 密码保护内容已解锁状态的特有样式
+.password-content-unlocked {
+  .password-content-header {
+    .unlock-badge {
+      padding: 0.2em 0.6em;
+      margin-left: auto;
+      font-size: 0.7em;
+      font-weight: 700;
+      color: var(--anzhiyu-white);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      background: linear-gradient(135deg, #52c41a 0%, #389e0d 100%);
+      border-radius: 12px;
+      box-shadow: var(--anzhiyu-shadow-lightblack);
+    }
+
+    .unlock-title {
+      font-size: 0.9em;
+      font-weight: 600;
+      color: var(--anzhiyu-secondtext);
+    }
+  }
+}
+
+// ========== 登录后可见内容样式 ==========
+.login-required-content-editor-preview {
+  margin: 1rem 0;
+  overflow: hidden;
+  background: var(--anzhiyu-card-bg);
+  border: var(--style-border-always);
+  border-radius: 12px;
+  box-shadow: var(--anzhiyu-shadow-border);
+  transition: all 0.3s ease;
+
+  &:hover {
+    border-color: var(--anzhiyu-main);
+  }
+
+  .login-required-content-header {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    background: var(--anzhiyu-secondbg);
+    border-bottom: var(--style-border-always);
+
+    .login-required-icon {
+      line-height: 1;
+      color: var(--anzhiyu-main);
+
+      svg {
+        width: 1.5em;
+        height: 1.5em;
+        vertical-align: middle;
+      }
+    }
+
+    .login-required-title {
+      font-size: 1.05em;
+      font-weight: 600;
+      color: var(--anzhiyu-fontcolor);
+    }
+
+    .login-required-badge {
+      padding: 0.2em 0.6em;
+      margin-left: auto;
+      font-size: 0.7em;
+      font-weight: 700;
+      color: var(--anzhiyu-white);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      background: var(--anzhiyu-main);
+      border-radius: 12px;
+      box-shadow: var(--anzhiyu-shadow-lightblack);
+    }
+  }
+
+  .login-required-content-body {
+    padding: 0 1rem;
+
+    .login-required-content-preview {
+      padding: 1rem 0;
+
+      & > :first-child {
+        margin-top: 0;
+      }
+
+      & > :last-child {
+        margin-bottom: 0;
+      }
+    }
+
+    // 登录后可见内容占位符样式
+    .login-required-content-placeholder {
+      position: relative;
+      padding: 2rem;
+      margin: 1rem 0;
+      overflow: hidden;
+      text-align: center;
+      background: var(--anzhiyu-secondbg);
+      border: var(--style-border-always);
+      border-radius: 1.25rem;
+      transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+
+      .placeholder-icon {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 0.25rem;
+        color: var(--anzhiyu-main);
+        filter: drop-shadow(0 4px 12px var(--anzhiyu-theme-op));
+        transition: all 0.3s ease;
+        animation: iconFloat 3.5s ease-in-out infinite;
+
+        svg {
+          width: 48px;
+          height: 48px;
+        }
+      }
+
+      &:hover .placeholder-icon {
+        transform: scale(1.08) translateY(-2px);
+      }
+
+      .placeholder-description {
+        margin: 0 0 0.75rem;
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--anzhiyu-fontcolor);
+        letter-spacing: -0.02em;
+        text-align: center;
+      }
+
+      .placeholder-action-area {
+        display: flex;
+        gap: 0.75rem;
+        justify-content: center;
+        width: 100%;
+
+        .login-btn,
+        .register-btn {
+          position: relative;
+          display: inline-flex;
+          gap: 0.5rem;
+          align-items: center;
+          justify-content: center;
+          min-width: 8rem;
+          height: 3rem;
+          padding: 0 1.5rem;
+          overflow: hidden;
+          font-size: 1rem;
+          font-weight: 600;
+          text-decoration: none;
+          cursor: pointer;
+          border-radius: 50px;
+          transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+
+          &:active {
+            transform: translateY(0) scale(1);
+          }
+        }
+
+        .login-btn {
+          color: var(--anzhiyu-white);
+          background: var(--anzhiyu-main);
+          border: var(--style-border-always);
+
+          &:hover {
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: var(--anzhiyu-shadow-main);
+          }
+        }
+
+        .register-btn {
+          color: var(--anzhiyu-main);
+          background: var(--anzhiyu-card-bg);
+          border: 2px solid var(--anzhiyu-main);
+
+          &:hover {
+            transform: translateY(-2px) scale(1.02);
+            background: var(--anzhiyu-main);
+            color: var(--anzhiyu-white);
+            box-shadow: var(--anzhiyu-shadow-main);
+          }
+        }
+      }
+    }
+
+    // 图标浮动动画
+    @keyframes iconFloat {
+      0%,
+      100% {
+        transform: translateY(0);
+      }
+
+      50% {
+        transform: translateY(-8px);
+      }
+    }
+
+    .login-required-content-meta {
+      display: flex;
+      gap: 1rem;
+      justify-content: flex-end;
+      padding-bottom: 0.75rem;
+      font-size: 0.8em;
+      color: var(--anzhiyu-secondtext);
+      text-align: right;
+
+      .content-length::before {
+        content: "字数: ";
+      }
+
+      .login-required-info {
+        font-weight: 500;
+        color: var(--anzhiyu-main);
+      }
+    }
+  }
+}
+
+// ====== 响应式样式 ======
+@media (width <= 768px) {
+  .paid-content-editor-preview {
+    margin: 1.5rem 0;
+    border-radius: 12px;
+
+    .paid-content-header {
+      flex-direction: column;
+      gap: 0.75rem;
+      padding: 1.25rem 1rem 0.75rem;
+      text-align: center;
+
+      .paid-icon {
+        width: 36px;
+        height: 36px;
+
+        svg,
+        .md-editor-icon {
+          width: 20px;
+          height: 20px;
+        }
+      }
+
+      .paid-title {
+        font-size: 1rem;
+      }
+
+      .paid-price {
+        padding: 0.4rem 0.8rem;
+        font-size: 1.1rem;
+      }
+    }
+
+    .paid-content-body {
+      padding: 0 1rem 1.25rem;
+
+      .paid-content-meta {
+        padding: 0.6rem;
+
+        .content-length {
+          font-size: 0.85rem;
+        }
+      }
+    }
+  }
+
+  // 密码保护内容移动端样式
+  .password-content-editor-preview {
+    margin: 1.5rem 0;
+    border-radius: 12px;
+
+    .password-content-header {
+      flex-direction: column;
+      gap: 0.75rem;
+      padding: 1.25rem 1rem 0.75rem;
+      text-align: center;
+
+      .password-icon {
+        align-self: center;
+
+        .md-editor-icon {
+          width: 24px;
+          height: 24px;
+        }
+      }
+
+      .password-title {
+        margin: 0;
+        font-size: 1rem;
+      }
+
+      .password-pro-badge {
+        margin: 0;
+        font-size: 0.65em;
+      }
+    }
+
+    .password-content-body {
+      padding: 0 1rem 1.25rem;
+
+      .password-content-locked {
+        padding: 1.5rem 1rem;
+
+        .password-input-container {
+          flex-direction: column;
+          gap: 1rem;
+          max-width: 100%;
+
+          .password-input {
+            width: 100%;
+            padding: 0.8rem 1rem;
+            font-size: 1rem;
+          }
+
+          .password-verify-btn {
+            width: 100%;
+            min-width: auto;
+            padding: 0.8rem 1.5rem;
+          }
+        }
+
+        .password-hint {
+          margin-top: 1.25rem;
+          font-size: 0.85rem;
+        }
+      }
+
+      .password-content-meta {
+        flex-direction: column;
+        gap: 0.5rem;
+        font-size: 0.75em;
+        text-align: center;
+      }
+    }
+  }
+
+  .password-content-editor-preview,
+  .password-content-locked-view,
+  .password-content-unlocked {
+    margin: 1rem 0;
+
+    .password-content-header {
+      padding: 0.75rem;
+
+      .password-title {
+        font-size: 1rem;
+      }
+
+      .password-pro-badge,
+      .unlock-badge {
+        padding: 0.15em 0.5em;
+        font-size: 0.65em;
+      }
+    }
+
+    .password-content-body {
+      padding: 1rem;
+    }
+  }
+
+  // 登录后可见内容移动端样式
+  .login-required-content-editor-preview {
+    margin: 1.5rem 0;
+    border-radius: 12px;
+
+    .login-required-content-header {
+      flex-direction: column;
+      gap: 0.75rem;
+      padding: 1.25rem 1rem 0.75rem;
+      text-align: center;
+
+      .login-required-icon {
+        align-self: center;
+
+        svg {
+          width: 24px;
+          height: 24px;
+        }
+      }
+
+      .login-required-title {
+        margin: 0;
+        font-size: 1rem;
+      }
+
+      .login-required-badge {
+        margin: 0;
+        font-size: 0.65em;
+      }
+    }
+
+    .login-required-content-body {
+      padding: 0 1rem 1.25rem;
+
+      .login-required-content-placeholder {
+        padding: 2.5rem 1.5rem;
+        border-radius: 1rem;
+
+        &:hover {
+          transform: translateY(-2px);
+        }
+
+        .placeholder-icon {
+          width: 44px;
+          height: 44px;
+          margin-bottom: 1rem;
+
+          svg {
+            width: 44px;
+            height: 44px;
+          }
+        }
+
+        .placeholder-description {
+          margin-bottom: 0.5rem;
+          font-size: 1.25rem;
+        }
+
+        .placeholder-action-area {
+          flex-direction: column;
+          gap: 0.625rem;
+
+          .login-btn,
+          .register-btn {
+            width: 100%;
+            height: 2.75rem;
+            font-size: 0.9375rem;
+
+            &:hover {
+              transform: translateY(-2px) scale(1.01);
+            }
+          }
+        }
+      }
+
+      .login-required-content-meta {
+        flex-direction: column;
+        gap: 0.5rem;
+        font-size: 0.75em;
+        text-align: center;
+      }
+    }
+  }
+}
+
+@media (width <= 480px) {
+  .paid-content-editor-preview {
+    margin: 1rem 0;
+    border-radius: 10px;
+
+    .paid-content-header {
+      padding: 1rem 0.75rem 0.5rem;
+
+      .paid-title {
+        font-size: 0.95rem;
+      }
+
+      .paid-price {
+        padding: 0.35rem 0.7rem;
+        font-size: 1rem;
+      }
+    }
+
+    .paid-content-body {
+      padding: 0 0.75rem 1rem;
+    }
+
+    .paid-content-placeholder {
+      padding: 2rem 1rem;
+
+      .placeholder-purchase-area .purchase-btn {
+        padding: 0.7rem 1.5rem;
+        font-size: 1rem;
+      }
+    }
+  }
+
+  // 超小屏幕密码保护内容样式
+  .password-content-editor-preview {
+    margin: 1rem 0;
+    border-radius: 10px;
+
+    .password-content-header {
+      padding: 1rem 0.75rem 0.5rem;
+
+      .password-title {
+        font-size: 0.95rem;
+      }
+
+      .password-pro-badge {
+        padding: 0.15em 0.5em;
+        font-size: 0.6em;
+      }
+    }
+
+    .password-content-body {
+      padding: 0 0.75rem 1rem;
+
+      .password-content-locked {
+        padding: 1.25rem 0.75rem;
+
+        .password-input-container {
+          gap: 0.75rem;
+
+          .password-input {
+            padding: 0.7rem 0.9rem;
+            font-size: 0.95rem;
+            margin: 0;
+          }
+
+          .password-verify-btn {
+            padding: 0.7rem 1.25rem;
+            font-size: 0.95rem;
+          }
+        }
+
+        .password-hint {
+          margin-top: 1rem;
+          font-size: 0.8rem;
+        }
+
+        .password-error {
+          padding: 0.4rem 0.8rem;
+          margin-top: 0.6rem;
+          font-size: 0.8rem;
+        }
+      }
+    }
+  }
+
+  .password-content-editor-preview,
+  .password-content-locked-view,
+  .password-content-unlocked {
+    margin: 0.75rem 0;
+    border-radius: 10px;
+
+    .password-content-header {
+      padding: 0.6rem;
+
+      .password-title {
+        font-size: 0.95rem;
+      }
+
+      .password-pro-badge,
+      .unlock-badge {
+        padding: 0.1em 0.4em;
+        font-size: 0.6em;
+      }
+    }
+
+    .password-content-body {
+      padding: 0.75rem;
+    }
+  }
+
+  // 超小屏幕登录后可见内容样式
+  .login-required-content-editor-preview {
+    margin: 1rem 0;
+    border-radius: 10px;
+
+    .login-required-content-header {
+      padding: 1rem 0.75rem 0.5rem;
+
+      .login-required-title {
+        font-size: 0.95rem;
+      }
+
+      .login-required-badge {
+        padding: 0.15em 0.5em;
+        font-size: 0.6em;
+      }
+    }
+
+    .login-required-content-body {
+      padding: 0 0.75rem 1rem;
+
+      .login-required-content-placeholder {
+        padding: 2rem 1rem;
+        border-radius: 1rem;
+
+        .placeholder-icon {
+          width: 40px;
+          height: 40px;
+          margin-bottom: 0.5rem;
+
+          svg {
+            width: 40px;
+            height: 40px;
+          }
+        }
+
+        .placeholder-description {
+          margin-bottom: 0.5rem;
+          font-size: 1.125rem;
+        }
+
+        .placeholder-action-area {
+          .login-btn,
+          .register-btn {
+            width: 100%;
+            height: 2.5rem;
+            padding: 0 1.5rem;
+            font-size: 0.875rem;
+          }
+        }
+      }
+
+      .login-required-content-meta {
+        font-size: 0.75em;
+      }
+    }
+  }
+}

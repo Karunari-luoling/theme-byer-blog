@@ -1,0 +1,188 @@
+/*
+ * @Description: Tip 插件样式 - 鼠标悬停显示提示信息
+ * @Author: 安知鱼
+ * @Date: 2025-10-13 00:00:00
+ * @LastEditTime: 2025-12-19 10:27:33
+ * @LastEditors: 安知鱼
+ */
+
+// Tip 插件基础样式
+.anzhiyu-tip-wrapper {
+  position: relative;
+  display: inline-block;
+  // 修复：覆盖父元素的 content-visibility: auto，避免绝对定位的 tooltip 无法显示
+  // content-visibility: auto 会影响子元素的可见性计算，导致 tooltip 被隐藏
+  content-visibility: visible !important;
+
+  .anzhiyu-tip-text {
+    position: relative;
+    display: inline-block;
+    padding: 0 2px;
+    color: var(--anzhiyu-main);
+    text-decoration: underline;
+    text-decoration-style: dotted;
+    text-underline-offset: 3px;
+    cursor: help;
+    transition: all 0.3s ease;
+
+    &:hover {
+      color: var(--anzhiyu-main-op-deep);
+      text-decoration-color: var(--anzhiyu-main-op-deep);
+    }
+  }
+
+  .anzhiyu-tip {
+    position: absolute;
+    z-index: 9999;
+    min-width: 120px;
+    max-width: 300px;
+    padding: 0;
+    font-size: 14px;
+    line-height: 1.4;
+    color: #fff;
+    white-space: nowrap;
+    pointer-events: none;
+    background: transparent;
+    border-radius: 6px;
+    opacity: 0;
+    transform: scale(0.8);
+    transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+
+    .tip-content {
+      padding: 8px 12px;
+      background: rgba(0, 0, 0, 0.85);
+      border-radius: 6px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    }
+
+    // 位置样式
+    &.tip-top {
+      bottom: 100%;
+      left: 50%;
+      margin-bottom: 8px;
+      transform: translateX(-50%) scale(0.8);
+    }
+
+    &.tip-bottom {
+      top: 100%;
+      left: 50%;
+      margin-top: 8px;
+      transform: translateX(-50%) scale(0.8);
+    }
+
+    &.tip-left {
+      top: 50%;
+      right: 100%;
+      margin-right: 8px;
+      transform: translateY(-50%) scale(0.8);
+    }
+
+    &.tip-right {
+      top: 50%;
+      left: 100%;
+      margin-left: 8px;
+      transform: translateY(-50%) scale(0.8);
+    }
+
+    // 主题样式
+    &.tip-light {
+      .tip-content {
+        color: var(--anzhiyu-fontcolor);
+        background: var(--anzhiyu-card-bg);
+        border: 1px solid var(--anzhiyu-card-border);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+      }
+    }
+
+    &.tip-info {
+      .tip-content {
+        background: var(--anzhiyu-blue);
+      }
+    }
+
+    &.tip-warning {
+      .tip-content {
+        background: var(--anzhiyu-orange);
+      }
+    }
+
+    &.tip-error {
+      .tip-content {
+        background: var(--anzhiyu-red);
+      }
+    }
+
+    &.tip-success {
+      .tip-content {
+        background: var(--anzhiyu-green);
+      }
+    }
+  }
+
+  // 显示效果
+  .anzhiyu-tip.show {
+    opacity: 1 !important;
+    pointer-events: auto !important;
+
+    &.tip-top {
+      transform: translateX(-50%) scale(1) !important;
+    }
+
+    &.tip-bottom {
+      transform: translateX(-50%) scale(1) !important;
+    }
+
+    &.tip-left {
+      transform: translateY(-50%) scale(1) !important;
+    }
+
+    &.tip-right {
+      transform: translateY(-50%) scale(1) !important;
+    }
+  }
+}
+
+// 响应式设计
+@media (max-width: 768px) {
+  .anzhiyu-tip-wrapper .anzhiyu-tip {
+    max-width: 250px;
+    font-size: 13px;
+
+    .tip-content {
+      padding: 6px 10px;
+    }
+  }
+}
+
+// 暗色模式适配
+[data-theme="dark"] {
+  .anzhiyu-tip-wrapper {
+    .anzhiyu-tip {
+      &.tip-light {
+        .tip-content {
+          color: var(--anzhiyu-fontcolor);
+          background: var(--anzhiyu-card-bg);
+          border-color: var(--anzhiyu-card-border);
+        }
+      }
+    }
+  }
+}
+
+// 动画延迟效果
+.anzhiyu-tip-wrapper .anzhiyu-tip {
+  transition-delay: var(--tip-delay, 300ms);
+}
+
+// 多行文本支持
+.anzhiyu-tip-wrapper .anzhiyu-tip .tip-content {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+
+  &.multiline {
+    white-space: pre-wrap;
+    max-width: none;
+    width: max-content;
+  }
+}
