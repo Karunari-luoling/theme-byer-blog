@@ -1,18 +1,16 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, type PropType } from "vue";
-import { ElTooltip } from "element-plus";
-import { useUserStoreHook } from "@/store/modules/user";
-import { storeToRefs } from "pinia";
+import { computed, type PropType } from "vue";
 import { IconifyIconOnline } from "@/components/ReIcon";
 
 interface AuthorConfig {
-  description: string;
-  statusImg: string;
-  skills: string[];
-  social: Record<string, { icon: string; link: string }>;
   userAvatar: string;
   ownerName: string;
-  subTitle: string;
+  subTitle?: string;
+  statusImg?: string;
+  articleCount?: number;
+  tagCount?: number;
+  categoryCount?: number;
+  social?: Record<string, { icon: string; link: string; title?: string }>;
 }
 
 const props = defineProps({
@@ -22,448 +20,227 @@ const props = defineProps({
   }
 });
 
-const userStore = useUserStoreHook();
-const { nickname, id } = storeToRefs(userStore);
-
-const greetings = ref<string[]>([]);
-const currentGreetingIndex = ref(0);
-const showSkill = ref(false); // 控制是否显示技能标签
-
-// 用户问候语（仅登录用户）
-const userGreeting = computed(() => {
-  // 如果没有用户昵称，返回空（不应该被调用）
-  if (!nickname.value || nickname.value.trim() === "") {
-    return "";
+const stats = computed(() => [
+  {
+    key: "articles",
+    title: "文章",
+    link: "/archives",
+    count: props.config.articleCount ?? 0
+  },
+  {
+    key: "tags",
+    title: "标签",
+    link: "/tags",
+    count: props.config.tagCount ?? 0
+  },
+  {
+    key: "categories",
+    title: "分类",
+    link: "/categories",
+    count: props.config.categoryCount ?? 0
   }
+]);
 
-  // 检查上次问候时间
-  const lastGreetingTime = localStorage.getItem(`lastGreeting_${id.value}`);
-  const now = Date.now();
+const socialList = computed(() =>
+  Object.entries(props.config.social || {}).map(([name, value]) => ({
+    name,
+    icon: value.icon,
+    link: value.link
+  }))
+);
 
-  if (lastGreetingTime) {
-    const timeDiff = now - parseInt(lastGreetingTime);
-    const hoursDiff = timeDiff / (1000 * 60 * 60);
+const statusStyle = computed(() =>
+  props.config.statusImg
+    ? {
+        backgroundImage: `url(${props.config.statusImg})`
+      }
+    : undefined
+);
 
-    // 如果距离上次问候超过24小时，显示"好久不见"
-    if (hoursDiff > 24) {
-      return `好久不见，${nickname.value}`;
-    } else {
-      // 24小时内，显示"欢迎再次回来"
-      return `欢迎再次回来，${nickname.value}`;
-    }
-  } else {
-    // 第一次访问，显示"欢迎光临"
-    return `欢迎光临，${nickname.value}`;
-  }
-});
+const isImageIcon = (icon?: string) =>
+  !!icon && (icon.startsWith("http://") || icon.startsWith("https://"));
 
-const currentGreeting = computed(() => {
-  if (greetings.value.length === 0) return "集中精力，攻克难关";
-  return greetings.value[currentGreetingIndex.value];
-});
-
-// 显示的内容：有昵称时默认显示问候语，无昵称直接显示技能标签
-const displayGreeting = computed(() => {
-  // 如果没有昵称，直接显示技能标签
-  if (!nickname.value || nickname.value.trim() === "") {
-    return currentGreeting.value;
-  }
-
-  // 有昵称时，根据 showSkill 状态决定显示问候语还是技能标签
-  if (!showSkill.value) {
-    return userGreeting.value;
-  }
-  return currentGreeting.value;
-});
-
-const changeSayHelloText = () => {
-  if (!showSkill.value) {
-    // 第一次点击，切换到显示技能
-    showSkill.value = true;
-    return;
-  }
-
-  // 已经在显示技能，切换到下一个技能
-  const totalGreetings = greetings.value.length;
-  if (totalGreetings <= 1) return;
-  let newIndex;
-  do {
-    newIndex = Math.floor(Math.random() * totalGreetings);
-  } while (newIndex === currentGreetingIndex.value);
-  currentGreetingIndex.value = newIndex;
-};
-
-onMounted(() => {
-  if (props.config.skills && props.config.skills.length > 0) {
-    greetings.value = props.config.skills;
-    currentGreetingIndex.value = Math.floor(
-      Math.random() * props.config.skills.length
-    );
-  }
-
-  // 调试：输出用户信息
-  console.log("用户昵称:", nickname.value);
-  console.log("用户ID:", id.value);
-  console.log("问候语:", userGreeting.value);
-
-  // 更新用户的最后问候时间
-  if (id.value) {
-    localStorage.setItem(`lastGreeting_${id.value}`, Date.now().toString());
-  }
-});
+const isIconify = (icon?: string) => !!icon && icon.includes(":");
 </script>
 
 <template>
-  <div class="card-widget card-info">
-    <div class="card-content">
-      <div id="author-info__sayhi" @click="changeSayHelloText">
-        {{ displayGreeting }}
-      </div>
-      <div class="author-info-avatar">
+  <div class="card-widget card-aside card-info">
+    <div v-if="statusStyle" class="g-status" :style="statusStyle" />
+    <div class="card-info-avatar">
+      <img
+        class="card-info-avatar-img"
+        :src="config.userAvatar"
+        alt="avatar"
+        loading="lazy"
+      />
+    </div>
+    <span class="card-info-name">{{ config.ownerName }}</span>
+    <div class="card-info-datas">
+      <router-link
+        v-for="item in stats"
+        :key="item.key"
+        class="card-info-data"
+        :to="item.link"
+      >
+        <span class="card-info-data-title">{{ item.title }}</span>
+        <span class="card-info-data-count">{{ item.count }}</span>
+      </router-link>
+    </div>
+    <div class="card-info-socials">
+      <a
+        v-for="social in socialList"
+        :key="social.name"
+        class="card-info-Social"
+        :href="social.link"
+        :title="social.name"
+        rel="external nofollow noreferrer"
+        target="_blank"
+      >
         <img
-          class="avatar-img"
-          :src="config.userAvatar"
-          alt="avatar"
-          width="118"
-          height="118"
+          v-if="isImageIcon(social.icon)"
+          class="card-info-social-img"
+          :src="social.icon"
+          :alt="social.name"
           loading="lazy"
         />
-        <div class="author-status">
-          <img
-            class="g-status"
-            :src="config.statusImg"
-            alt="status"
-            width="26"
-            height="26"
-            loading="lazy"
-          />
-        </div>
-      </div>
-      <div class="author-info__description" v-html="config.description" />
-      <div class="author-info__bottom-group">
-        <router-link class="author-info__bottom-group-left" to="/about">
-          <h1 class="author-info__name">{{ config.ownerName }}</h1>
-          <div class="author-info__desc">{{ config.subTitle }}</div>
-        </router-link>
-        <div class="card-info-social-icons">
-          <el-tooltip
-            v-for="(social, name) in config.social"
-            :key="name"
-            :content="name"
-            placement="top"
-            :show-arrow="false"
-          >
-            <a
-              class="social-icon"
-              :href="social.link"
-              rel="external nofollow noreferrer"
-              target="_blank"
-            >
-              <!-- 图片 URL -->
-              <img
-                v-if="
-                  social.icon &&
-                  (social.icon.startsWith('http://') ||
-                    social.icon.startsWith('https://'))
-                "
-                :src="social.icon"
-                :alt="name"
-                class="social-icon-img"
-              />
-              <!-- Iconify 图标 -->
-              <IconifyIconOnline
-                v-else-if="social.icon && social.icon.includes(':')"
-                :icon="social.icon"
-                width="20"
-                height="20"
-                class="social-iconify"
-              />
-              <!-- anzhiyu 图标 -->
-              <i
-                v-else-if="social.icon"
-                class="anzhiyufont"
-                :class="social.icon"
-              />
-            </a>
-          </el-tooltip>
-        </div>
-      </div>
+        <IconifyIconOnline
+          v-else-if="isIconify(social.icon)"
+          :icon="social.icon"
+          width="18"
+          height="18"
+        />
+        <i v-else-if="social.icon" class="anzhiyufont" :class="social.icon" />
+        <span v-else class="card-info-social-text">
+          {{ social.name?.charAt(0) }}
+        </span>
+      </a>
     </div>
   </div>
 </template>
 
 <style lang="scss" scoped>
-@keyframes gradient {
-  0% {
-    background-position: 0% 50%;
-  }
-
-  50% {
-    background-position: 100% 50%;
-  }
-
-  100% {
-    background-position: 0% 50%;
-  }
-}
-
 .card-info {
-  padding: 0;
-  border: none;
-  /* 预留固定高度，防止布局偏移 */
-  contain: layout;
+  position: relative;
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  grid-template-rows: auto auto auto;
+  gap: 0px;
+  padding: 14px 14px 12px;
+  overflow: hidden;
+  border-radius: 10px;
+  color: #fffd;
+
+  > * {
+    z-index: 3;
+  }
 
   &::before {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
     content: "";
-    background: linear-gradient(
-      -25deg,
-      var(--anzhiyu-main),
-      var(--anzhiyu-main-op-deep),
-      var(--anzhiyu-main),
-      var(--anzhiyu-main-op-deep)
-    );
-    background-size: 400%;
-    /* 延迟动画启动，避免初始渲染时的性能影响 */
-    animation: gradient 15s ease infinite;
-    will-change: background-position;
-  }
-
-  .card-content {
-    position: relative;
-    /* 固定最小高度，防止内容加载时的布局偏移 */
-    min-height: 320px;
-    height: 320px;
-    padding: 1rem 1.2rem;
-  }
-
-  &:hover {
-    .author-info-avatar,
-    .author-status {
-      opacity: 0;
-      transform: scale(0);
-    }
-
-    .author-info__description {
-      opacity: 1;
-    }
-  }
-}
-
-#author-info__sayhi {
-  width: fit-content;
-  padding: 2px 8px;
-  margin: auto;
-  font-size: 12px;
-  color: var(--anzhiyu-white);
-  text-align: left;
-  cursor: pointer;
-  user-select: none;
-  background: var(--anzhiyu-white-op);
-  border-radius: 12px;
-  transition: 0.3s;
-
-  &:hover {
-    color: var(--anzhiyu-fontcolor);
-    background: var(--anzhiyu-card-bg);
-    transform: scale(1.15);
-  }
-
-  &:active {
-    opacity: 0.8;
-    transform: scale(0.8);
-  }
-}
-
-.author-info-avatar {
-  position: relative;
-  display: flex;
-  justify-content: center;
-  width: 118px;
-  height: 118px;
-  margin: 45px auto;
-  user-select: none;
-  transition: cubic-bezier(0.69, 0.39, 0, 1.21) 0.3s;
-  transform-origin: bottom;
-
-  .avatar-img {
+    position: absolute;
+    inset: 0;
     width: 100%;
     height: 100%;
-    object-fit: cover;
-    border: var(--style-border-avatar);
-    border-radius: 50%;
-    /* 图片加载过渡效果 */
-    opacity: 0;
-    background: var(--anzhiyu-secondbg);
-    transition: opacity 0.6s ease;
-
-    /* 图片加载完成后显示 */
-    &[src] {
-      animation: avatarFadeIn 0.6s ease forwards;
-    }
-  }
-
-  @keyframes avatarFadeIn {
-    from {
-      opacity: 0;
-    }
-    to {
-      opacity: 1;
-    }
-  }
-
-  .author-status {
-    position: absolute;
-    right: 2px;
-    bottom: 2px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 33px;
-    height: 33px;
-    overflow: hidden;
-    background-color: var(--anzhiyu-white);
-    border-radius: 50%;
-    transition: 0.3s 0.2s;
-    transform: scale(1);
-
-    .g-status {
-      width: 26px;
-      height: 26px;
-      border-radius: 0;
-      /* 图片加载过渡效果 */
-      opacity: 0;
-      transition: opacity 0.6s ease;
-
-      /* 图片加载完成后显示 */
-      &[src] {
-        animation: statusFadeIn 0.6s ease 0.2s forwards;
-      }
-    }
-
-    @keyframes statusFadeIn {
-      from {
-        opacity: 0;
-      }
-      to {
-        opacity: 1;
-      }
-    }
+    background-color: #fff2;
+    border: 1px solid #0000;
+    border-radius: 10px;
+    -webkit-backdrop-filter: blur(5px);
+    backdrop-filter: blur(5px);
+    z-index: 2;
   }
 }
 
-.author-info__description {
+.g-status {
   position: absolute;
-  top: 50px;
-  left: 0;
-  width: 100%;
-  padding: 1rem 1.2rem;
-  color: var(--anzhiyu-white);
-  opacity: 0;
-  transition: 0.3s;
+  inset: 0;
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  border-radius: 10px;
+  z-index: 1;
+}
 
-  :deep(div) {
-    margin: 0.6rem 0;
-    line-height: 1.38;
-    color: rgb(255 255 255 / 80%);
-    text-align: justify;
-  }
+.card-info-avatar {
+  grid-area: 1 / 1 / 3;
+  width: 60px;
+  height: 60px;
 
-  :deep(b) {
-    color: #fff;
+  .card-info-avatar-img {
+    width: 100%;
+    height: 100%;
+    border-radius: 10px;
+    object-fit: cover;
   }
 }
 
-.author-info__bottom-group {
+.card-info-name {
+  grid-area: 1 / 2;
+  font-size: 19px;
+  font-weight: 500;
+  align-self: end;
+  margin-left: 5px;
+}
+
+.card-info-datas {
+  grid-area: 2 / 2;
+  display: flex;
+}
+
+.card-info-data {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  margin: 5px;
+  padding: 2px 6px;
+  background-color: #0003;
+  border-radius: 6px;
+  font-size: 14px;
+  text-align: center;
+  transition: all 0.2s;
+
+  &:hover {
+    transform: translateY(-1px);
+    background-color: #0004;
+  }
+}
+
+.card-info-data-title {
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.card-info-socials {
+  grid-area: 3 / 1 / auto / 3;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  width: 100%;
+  flex-wrap: wrap;
+}
 
-  .author-info__bottom-group-left {
-    text-decoration: none;
-  }
+.card-info-Social {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 10px;
+  width: 32px;
+  height: 32px;
+  color: #fffd;
+  transition:
+    transform 0.2s ease,
+    opacity 0.2s ease;
 
-  .author-info__name {
-    margin-top: 0;
-    margin-bottom: 5px;
-    font-size: 20px;
-    font-weight: 700;
-    line-height: 1;
-    color: var(--anzhiyu-white);
-    text-align: left;
-  }
-
-  .author-info__desc {
-    font-size: 12px;
-    line-height: 1;
-    color: var(--anzhiyu-white);
-    opacity: 0.6;
+  &:hover {
+    transform: translateY(-2px) scale(1.05);
+    opacity: 0.9;
   }
 }
 
-.card-info-social-icons {
-  display: flex;
-  flex-flow: row wrap;
-  min-width: 100px;
-  margin: 0;
-  cursor: pointer;
+.card-info-social-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
 
-  .social-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 0 0 10px;
-    width: 40px;
-    height: 40px;
-    padding: 8px;
-    font-size: 1.4em;
-    color: var(--anzhiyu-fontcolor);
-    background: var(--anzhiyu-white-op);
-    border-radius: 32px;
-    cursor: pointer;
-    transition: all 0.3s ease 0s;
-
-    &:hover {
-      color: var(--anzhiyu-main);
-      background: var(--anzhiyu-secondbg);
-      box-shadow: none;
-      transform: scale(1.1);
-
-      i {
-        color: var(--anzhiyu-main);
-      }
-
-      .social-iconify {
-        color: var(--anzhiyu-main);
-      }
-    }
-
-    i {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 100%;
-      height: 100%;
-      font-size: 1rem;
-      color: var(--anzhiyu-white);
-    }
-
-    .social-icon-img {
-      width: 24px;
-      height: 24px;
-      object-fit: contain;
-    }
-
-    .social-iconify {
-      width: 20px;
-      height: 20px;
-      color: var(--anzhiyu-white);
-    }
-  }
+.card-info-social-text {
+  font-size: 13px;
+  font-weight: 600;
 }
 </style>

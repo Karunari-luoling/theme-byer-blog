@@ -10,6 +10,7 @@ import { computed } from "vue";
 import { storeToRefs } from "pinia";
 import { useSiteConfigStore } from "@/store/modules/siteConfig";
 import { useUiStore } from "@/store/modules/uiStore";
+import { useArticleStore } from "@/store/modules/articleStore";
 import AuthorInfoCard from "./components/AuthorInfoCard.vue";
 import CardWechat from "./components/CardWechat.vue";
 import Sticky from "./components/Sticky.vue";
@@ -24,6 +25,21 @@ const siteConfig = computed(() => siteConfigStore.getSiteConfig);
 const uiStore = useUiStore();
 const { isSidebarVisible } = storeToRefs(uiStore);
 
+const articleStore = useArticleStore();
+const { tags, categories, archives } = storeToRefs(articleStore);
+
+const articleCount = computed(() => {
+  const total = siteConfig.value?.sidebar?.siteinfo?.totalPostCount;
+  if (typeof total === "number" && total >= 0) return total;
+  return (archives.value || []).reduce(
+    (sum, item) => sum + (item?.count || 0),
+    0
+  );
+});
+
+const tagCount = computed(() => tags.value?.length || 0);
+const categoryCount = computed(() => categories.value?.length || 0);
+
 const authorInfoConfig = computed(() => {
   if (!siteConfig.value?.sidebar?.author?.enable) return null;
   return {
@@ -33,7 +49,10 @@ const authorInfoConfig = computed(() => {
     social: siteConfig.value.sidebar.author.social,
     userAvatar: siteConfig.value.USER_AVATAR,
     ownerName: siteConfig.value.frontDesk.siteOwner.name,
-    subTitle: siteConfig.value.SUB_TITLE
+    subTitle: siteConfig.value.SUB_TITLE,
+    articleCount: articleCount.value,
+    tagCount: tagCount.value,
+    categoryCount: categoryCount.value
   };
 });
 
@@ -61,7 +80,7 @@ const wechatConfig = computed(() => {
   display: flex;
   flex-direction: column;
   gap: 0.625rem;
-  width: 300px;
+  width: 270px;
   transition: all 0.3s;
   opacity: 1;
   animation: slide-in 0.6s 0.1s backwards;

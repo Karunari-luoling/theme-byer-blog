@@ -52,6 +52,64 @@ export const useArticleStore = defineStore("article", () => {
   const areArchivesLoading = ref(false);
   const hasFetchedArchives = ref(false);
 
+  // --- 本地缓存（避免重复请求） ---
+  const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
+  const CACHE_KEY_TAGS = "article_tags_cache";
+  const CACHE_KEY_CATEGORIES = "article_categories_cache";
+  const CACHE_KEY_ARCHIVES = "article_archives_cache";
+
+  const readCache = <T>(key: string): T | null => {
+    if (typeof localStorage === "undefined") return null;
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    try {
+      const parsed = JSON.parse(raw) as { data: T; timestamp: number };
+      if (Date.now() - parsed.timestamp > CACHE_TTL) {
+        localStorage.removeItem(key);
+        return null;
+      }
+      return parsed.data;
+    } catch (error) {
+      console.warn(`Failed to parse cache for ${key}:`, error);
+      localStorage.removeItem(key);
+      return null;
+    }
+  };
+
+  const writeCache = <T>(key: string, data: T) => {
+    if (typeof localStorage === "undefined") return;
+    try {
+      localStorage.setItem(
+        key,
+        JSON.stringify({
+          data,
+          timestamp: Date.now()
+        })
+      );
+    } catch (error) {
+      console.warn(`Failed to write cache for ${key}:`, error);
+    }
+  };
+
+  // 初始化时尝试读取缓存，若有效则直接填充并标记为已获取
+  const cachedTags = readCache<PostTag[]>(CACHE_KEY_TAGS);
+  if (cachedTags) {
+    tags.value = cachedTags;
+    hasFetchedTags.value = true;
+  }
+
+  const cachedCategories = readCache<PostCategory[]>(CACHE_KEY_CATEGORIES);
+  if (cachedCategories) {
+    categories.value = cachedCategories;
+    hasFetchedCategories.value = true;
+  }
+
+  const cachedArchives = readCache<ArchiveItem[]>(CACHE_KEY_ARCHIVES);
+  if (cachedArchives) {
+    archives.value = cachedArchives;
+    hasFetchedArchives.value = true;
+  }
+
   // --- Actions ---
 
   async function navigateToRandomArticle() {
@@ -123,6 +181,7 @@ export const useArticleStore = defineStore("article", () => {
     try {
       const { data } = await getCategoryList();
       categories.value = data || [];
+      writeCache(CACHE_KEY_CATEGORIES, categories.value);
     } catch (error) {
       console.error("获取分类列表失败:", error);
       categories.value = [];
@@ -140,6 +199,7 @@ export const useArticleStore = defineStore("article", () => {
     try {
       const { data } = await getTagList();
       tags.value = data || [];
+      writeCache(CACHE_KEY_TAGS, tags.value);
     } catch (error) {
       console.error("获取标签列表失败:", error);
       tags.value = [];
@@ -158,6 +218,7 @@ export const useArticleStore = defineStore("article", () => {
       const res = await getArticleArchives();
       if (res.code === 200 && res.data) {
         archives.value = res.data.list || [];
+        writeCache(CACHE_KEY_ARCHIVES, archives.value);
       }
     } catch (error) {
       console.error("获取归档列表失败:", error);
