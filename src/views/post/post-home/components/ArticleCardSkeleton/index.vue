@@ -49,7 +49,7 @@ defineProps({
 
   &.double-column-item {
     flex-direction: column;
-    width: calc(50% - 0.3125rem);
+    width: calc(33.333% - 0.417rem);
     height: auto;
     margin: 0;
 
@@ -167,6 +167,13 @@ defineProps({
 @keyframes shimmer {
   100% {
     transform: translateX(100%);
+  }
+}
+
+// 992px - 1200px 双栏布局，保持与真实卡片一致
+@media screen and (width > 992px) and (width <= 1200px) {
+  .article-skeleton.double-column-item {
+    width: calc(50% - 0.3125rem);
   }
 }
 

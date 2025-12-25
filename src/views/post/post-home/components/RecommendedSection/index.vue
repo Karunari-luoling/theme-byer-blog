@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, watch } from "vue";
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useSiteConfigStore } from "@/store/modules/siteConfig";
 import { useArticleStore } from "@/store/modules/articleStore";
@@ -28,6 +28,8 @@ let carouselTimer: number | null = null;
 
 // 每次显示的数量
 const VISIBLE_COUNT = 3;
+// 卡片之间的间距（需与宽度计算保持一致）
+const ITEM_SPACING_REM = 0.5;
 
 // 扩展的文章列表（前后各添加 VISIBLE_COUNT 个用于无缝循环）
 const extendedArticles = computed(() => {
@@ -45,6 +47,12 @@ const extendedArticles = computed(() => {
   const prefix = articles.slice(-VISIBLE_COUNT);
   const suffix = articles.slice(0, VISIBLE_COUNT);
   return [...prefix, ...articles, ...suffix];
+});
+// 将间距按元素数量均摊，避免尾部留白
+const itemSpacingShareRem = computed(() => {
+  const total = extendedArticles.value.length;
+  if (total <= 1) return 0;
+  return (ITEM_SPACING_REM * (total - 1)) / total;
 });
 
 // 计算轨道和位移样式
@@ -122,10 +130,25 @@ watch(
   () => recommendedArticles.value,
   () => {
     currentIndex.value = 0;
+    setupLazyLoad();
   }
 );
 
 let observer: IntersectionObserver | null = null;
+const setupLazyLoad = async () => {
+  await nextTick(); // 确保 DOM 更新后再挂载观察器
+  destroyLazyLoad(observer);
+  observer = initLazyLoad(document, {
+    selector: "img[data-src]",
+    threshold: 0.1,
+    rootMargin: "100px",
+    loadedClass: "lazy-loaded",
+    loadingClass: "lazy-loading"
+  });
+};
+
+const getCoverUrl = (article: any) =>
+  article?.cover_url || articleStore.defaultCover;
 
 /**
  * 处理分类点击事件
@@ -166,14 +189,7 @@ const handleCategoryClick = (item: any, event: MouseEvent) => {
 onMounted(() => {
   articleStore.fetchHomeArticles();
   startCarousel();
-  // 初始化封面图片懒加载
-  observer = initLazyLoad(document, {
-    selector: "img[data-src]",
-    threshold: 0.1,
-    rootMargin: "100px",
-    loadedClass: "lazy-loaded",
-    loadingClass: "lazy-loading"
-  });
+  setupLazyLoad();
 });
 
 onUnmounted(() => {
@@ -183,17 +199,14 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div
-    v-if="homeTopConfig && hasRecommendedArticles"
-    class="recommended-section"
-  >
+  <div v-if="homeTopConfig" class="recommended-section">
     <!-- 左侧：推荐文章列表 -->
     <div
       class="recommended-articles"
       @mouseenter="stopCarousel"
       @mouseleave="startCarousel"
     >
-      <div class="articles-viewport">
+      <div v-if="hasRecommendedArticles" class="articles-viewport">
         <div
           class="articles-track"
           :style="trackStyle"
@@ -203,22 +216,19 @@ onUnmounted(() => {
             v-for="(article, index) in extendedArticles"
             :key="`${article.id}-${index}`"
             class="article-item"
-            :style="{ width: `calc(${itemWidthPercent}% - 0.34rem)` }"
+            :style="{
+              width: `calc(${itemWidthPercent}% - ${itemSpacingShareRem}rem)`
+            }"
             :to="`/posts/${article.id}`"
             :title="article.title"
           >
             <div class="article-cover">
               <span class="article-top-text">荐</span>
               <img
-                v-if="article.cover_url"
                 class="article-bg lazy-loading"
-                :data-src="article.cover_url"
-                :alt="article.title"
-              />
-              <img
-                v-else
-                class="article-bg lazy-loading"
-                :data-src="articleStore.defaultCover"
+                loading="lazy"
+                :src="articleStore.defaultCover"
+                :data-src="getCoverUrl(article)"
                 :alt="article.title"
               />
             </div>
@@ -226,6 +236,13 @@ onUnmounted(() => {
               <div class="article-title">{{ article.title }}</div>
             </div>
           </router-link>
+        </div>
+      </div>
+
+      <div v-else class="articles-skeleton">
+        <div v-for="n in 3" :key="n" class="skeleton-card">
+          <div class="skeleton-cover shimmer" />
+          <div class="skeleton-text shimmer" />
         </div>
       </div>
     </div>
@@ -281,6 +298,67 @@ onUnmounted(() => {
   overflow: hidden;
 }
 
+.articles-skeleton {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+  height: 200px;
+}
+
+.skeleton-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  height: 100%;
+  background: var(--anzhiyu-card-bg);
+  border: var(--style-border-always);
+  border-radius: 12px;
+  box-shadow: var(--anzhiyu-shadow-border);
+}
+
+.skeleton-cover {
+  flex: 1 1 60%;
+  border-radius: 8px;
+}
+
+.skeleton-text {
+  flex: 0 0 14px;
+  height: 14px;
+  border-radius: 6px;
+}
+
+.shimmer {
+  position: relative;
+  overflow: hidden;
+  background: var(--anzhiyu-secondbg);
+
+  &::after {
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 200%;
+    height: 100%;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.12),
+      transparent
+    );
+    animation: shimmer 1.2s infinite;
+    content: "";
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-50%);
+  }
+  100% {
+    transform: translateX(50%);
+  }
+}
+
 .articles-viewport {
   width: 100%;
   overflow: hidden;
@@ -290,12 +368,17 @@ onUnmounted(() => {
 .articles-track {
   display: flex;
   height: 200px;
+  --article-gap: 0.5rem;
+  column-gap: var(--article-gap);
+  padding: 0;
+  margin: 0;
   will-change: transform;
 }
 
 .article-item {
   flex-shrink: 0;
-  margin-right: 0.5rem;
+  margin-right: 0;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   background: var(--anzhiyu-card-bg);
