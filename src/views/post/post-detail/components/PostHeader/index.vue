@@ -545,6 +545,12 @@ const scrollToComment = (event: Event) => {
   animation-delay: -5s;
 }
 
+@media screen and (width <= 768px) {
+  .post-info {
+    bottom: 60px;
+  }
+}
+
 @keyframes move-forever {
   0% {
     transform: translate3d(-90px, 0, 0);

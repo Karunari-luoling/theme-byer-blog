@@ -972,7 +972,7 @@ div#anzhiyu-footer-bar {
     z-index: 1;
     padding: 1rem;
     border: none;
-    border-radius: 12px 12px 0 0;
+    border-radius: 0 0 0 0;
   }
 
   .post-content-inner {
