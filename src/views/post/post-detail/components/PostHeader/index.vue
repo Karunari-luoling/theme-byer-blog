@@ -70,19 +70,6 @@ onMounted(() => {
             scrub: true
           }
         });
-
-        tl.to(".post-info", {
-          scale: 0.8,
-          y: 0,
-          ease: "none"
-        }).to(
-          ".post-top-cover",
-          {
-            scale: 0.5,
-            ease: "none"
-          },
-          "<"
-        );
       },
 
       // 移动端视图
@@ -95,20 +82,6 @@ onMounted(() => {
             scrub: true
           }
         });
-
-        tl.to(".post-info", {
-          scale: 1,
-          y: 0,
-          ease: "none",
-          transformOrigin: "center top"
-        }).to(
-          ".post-top-cover",
-          {
-            scale: 1,
-            ease: "none"
-          },
-          "<"
-        );
       }
     });
   });
@@ -269,133 +242,89 @@ const scrollToComment = (event: Event) => {
 <template>
   <div class="post-header-container" :style="dynamicStyles">
     <div class="post-info">
-      <div class="post-firstinfo">
-        <div class="meta-firstline-top">
-          <a class="post-meta-original">{{ articleType }}</a>
-          <span
-            v-if="article.post_categories.length > 0"
-            class="post-meta-categories"
-          >
-            <a
-              :href="`/categories/${article.post_categories[0].name}/`"
-              @click.prevent="goToCategory(article.post_categories[0].name)"
+      <h1 class="post-title">{{ article.title }}</h1>
+      <div id="post-metas" class="post-metas">
+        <div class="post-metas-firstline">
+          <div v-if="article.ip_location" class="post-meta post-location">
+            <i class="anzhiyufont anzhiyu-icon-location-dot" />
+            <span class="post-meta-content"> {{ article.ip_location }} | </span>
+          </div>
+          <div class="post-meta post-publishdate">
+            <i class="anzhiyufont anzhiyu-icon-calendar-days" />
+            <span class="post-meta-content"
+              >发表于 {{ formatDate(article.created_at) }} |</span
             >
-              {{ article.post_categories[0].name }}
-            </a>
-          </span>
-          <div v-if="article.post_tags.length" class="tag_share">
-            <div class="post-meta__tag-list">
+          </div>
+          <div class="post-meta post-lastupdatedate">
+            <i class="anzhiyufont anzhiyu-icon-history" />
+            <span class="post-meta-content"
+              >更新于 {{ formatDate(article.updated_at) }}
+              <span v-if="article.post_categories.length > 0">&nbsp;|</span>
+            </span>
+          </div>
+          <div
+            v-if="article.post_categories.length > 0"
+            class="post-meta post-category"
+          >
+            <i class="anzhiyufont anzhiyu-icon-inbox" />
+            <span class="post-meta-content">
+              <a>{{ articleType }}</a>
+              <span class="meta-dot">·</span>
               <a
-                v-for="tag in article.post_tags"
-                :key="tag.id"
-                class="post-meta__tags"
-                :href="`/tags/${tag.name}/`"
-                @click.prevent="goToTag(tag.name)"
+                :href="`/categories/${article.post_categories[0].name}/`"
+                @click.prevent="goToCategory(article.post_categories[0].name)"
+                >{{ article.post_categories[0].name }}</a
               >
-                <i class="anzhiyufont anzhiyu-icon-hashtag" />
-                <span class="tags-name">{{ tag.name }}</span>
-              </a>
-            </div>
+              <span v-if="article.post_tags.length">&nbsp;| </span>
+            </span>
+          </div>
+          <div v-if="article.post_tags.length" class="post-meta post-tags">
+            <i class="anzhiyufont anzhiyu-icon-hashtag" />
+            <span class="post-meta-content">
+              <div
+                v-for="(tag, index) in article.post_tags"
+                :key="tag.id"
+                class="post-tag-item"
+              >
+                <span v-if="index > 0" class="meta-dot">·</span>
+                <a
+                  :href="`/tags/${tag.name}/`"
+                  @click.prevent="goToTag(tag.name)"
+                  >{{ tag.name }}</a
+                >
+              </div>
+            </span>
           </div>
         </div>
-      </div>
-      <h1 class="post-title">{{ article.title }}</h1>
-      <div class="post-meta">
-        <div class="meta-firstline" />
-        <div class="meta-secondline">
-          <el-tooltip content="字数总计" placement="top" :show-arrow="false">
-            <div>
-              <span class="post-meta-wordcount">
-                <i class="anzhiyufont anzhiyu-icon-file-word post-meta-icon" />
-                <span>{{ article.word_count }}</span>
-              </span>
-            </div>
-          </el-tooltip>
-
-          <span class="post-meta-separator" />
-          <el-tooltip
-            :content="'预计阅读时长' + article.reading_time + '分钟'"
-            placement="top"
-            :show-arrow="false"
+        <div class="post-metas-secondline">
+          <div class="post-meta post-wordcount">
+            <i class="anzhiyufont anzhiyu-icon-file-word" />
+            <span class="post-meta-content"
+              >字数总计: {{ article.word_count }} |</span
+            >
+          </div>
+          <div class="post-meta post-viewcount">
+            <i class="anzhiyufont anzhiyu-icon-fire" />
+            <span class="post-meta-content"
+              >阅读量:&nbsp;{{ article.view_count }}&nbsp;|</span
+            >
+          </div>
+          <div class="post-meta post-readtime">
+            <i class="anzhiyufont anzhiyu-icon-clock" />
+            <span class="post-meta-content"
+              >阅读用时: {{ article.reading_time }} 分钟 |</span
+            >
+          </div>
+          <div
+            v-if="isCommentEnabled"
+            class="post-meta post-commentcount"
+            @click="scrollToComment"
           >
-            <div>
-              <span class="post-meta-wordcount">
-                <i class="anzhiyufont anzhiyu-icon-clock post-meta-icon" />
-                <span>{{ article.reading_time }}分钟</span>
-              </span>
-            </div>
-          </el-tooltip>
-
-          <span class="post-meta-separator" />
-          <el-tooltip
-            content="文章发布日期"
-            placement="top"
-            :show-arrow="false"
-          >
-            <div>
-              <span class="post-meta-date">
-                <i
-                  class="anzhiyufont anzhiyu-icon-calendar-days post-meta-icon"
-                />
-                <time :datetime="article.created_at">{{
-                  formatDate(article.created_at)
-                }}</time>
-              </span>
-            </div>
-          </el-tooltip>
-
-          <span class="post-meta-separator hidden-update-time" />
-          <el-tooltip
-            content="这篇文章更新于"
-            placement="top"
-            :show-arrow="false"
-          >
-            <div>
-              <span class="post-meta-date hidden-update-time">
-                <i class="anzhiyufont anzhiyu-icon-history post-meta-icon" />
-                <time :datetime="article.updated_at">{{
-                  formatDate(article.updated_at)
-                }}</time>
-              </span>
-            </div>
-          </el-tooltip>
-
-          <span class="post-meta-separator" />
-          <el-tooltip content="热度" placement="top" :show-arrow="false">
-            <div>
-              <span class="post-meta-viewcount">
-                <i class="anzhiyufont anzhiyu-icon-fire post-meta-icon" />
-                <span>{{ article.view_count }}</span>
-              </span>
-            </div>
-          </el-tooltip>
-
-          <span class="post-meta-separator" />
-          <el-tooltip
-            v-if="article.ip_location"
-            content="作者IP属地"
-            placement="top"
-            :show-arrow="false"
-          >
-            <div>
-              <span class="post-meta-position">
-                <i class="anzhiyufont anzhiyu-icon-location-dot" />
-                {{ article.ip_location }}
-              </span>
-            </div>
-          </el-tooltip>
-
-          <template v-if="isCommentEnabled">
-            <span class="post-meta-separator" />
-            <el-tooltip content="评论数" placement="top" :show-arrow="false">
-              <div>
-                <span class="post-meta-commentcount" @click="scrollToComment">
-                  <i class="anzhiyufont anzhiyu-icon-comments post-meta-icon" />
-                  <span>{{ article.comment_count || 0 }}</span>
-                </span>
-              </div>
-            </el-tooltip>
-          </template>
+            <i class="anzhiyufont anzhiyu-icon-comments" />
+            <span class="post-meta-content"
+              >{{ article.comment_count || 0 }} 条评论</span
+            >
+          </div>
         </div>
       </div>
     </div>
@@ -442,7 +371,7 @@ const scrollToComment = (event: Event) => {
   display: flex;
   justify-content: center;
   width: 100%;
-  height: 30rem;
+  height: 26rem;
   min-height: 300px;
   overflow: hidden;
   color: var(--anzhiyu-white);
@@ -455,7 +384,6 @@ const scrollToComment = (event: Event) => {
     width: 100%;
     height: 100%;
     content: "";
-    background-color: var(--primary-color);
     opacity: 1;
     transition: 0s;
   }
@@ -463,34 +391,30 @@ const scrollToComment = (event: Event) => {
 
 .post-info {
   position: absolute;
-  top: 0;
   z-index: 10;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  align-items: flex-start;
-  justify-content: center;
-  width: 100%;
+  width: 92%;
+  padding: 0 4%;
   max-width: 1400px;
-  height: 100%;
-  padding: 0 3.75rem;
-  margin: 0 auto;
   color: var(--anzhiyu-white);
-  text-align: center;
-  transform-origin: top left;
-  animation: slide-in 0.6s 0s backwards;
+  bottom: 100px;
 }
 
 .post-top-cover {
   position: relative;
-  width: 70%;
+  width: 100%;
   height: 100%;
-  margin: 0 -20% 0 auto;
   margin-bottom: 0;
   overflow: hidden;
-  filter: blur(30px);
-  opacity: 0.5;
-  transform: rotate(10deg) translateY(30%) scale(2) translateZ(0);
+
+  &::before {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    content: "";
+    background-color: #0003;
+    backdrop-filter: blur(15px) saturate(180%);
+    pointer-events: none;
+  }
 }
 
 .post-top-cover .post-top-bg {
@@ -508,82 +432,65 @@ const scrollToComment = (event: Event) => {
   }
 
   &.is-loaded {
-    opacity: 0.8;
-  }
-
-  &::after {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    content: "";
-    box-shadow: 110px -130px 300px 60px var(--anzhiyu-bar-background) inset;
+    opacity: 1;
   }
 }
 
-.post-firstinfo .meta-firstline-top {
+#post-metas {
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  background-color: #fff2;
+  border-radius: 15px;
+  padding: 10px 15px;
+  box-shadow: 0 0 20px #0002;
+}
+
+.post-metas-firstline,
+.post-metas-secondline {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
-  align-items: center;
-  margin-bottom: 1rem;
 }
 
-.post-meta-original,
-.post-meta-categories a {
+#post-metas .post-meta {
   display: flex;
   align-items: center;
-  height: 32px;
-  padding: 0 12px;
-  font-size: 1rem;
-  font-weight: 600;
+}
+
+#post-metas .post-meta > * {
+  margin: auto 0 auto 5px;
+}
+
+#post-metas .post-meta-content {
+  display: flex;
+}
+
+#post-metas .post-tags {
   white-space: nowrap;
-  background: var(--anzhiyu-white-op);
-  backdrop-filter: blur(10px);
-  border-radius: 12px;
-  transition: all 0.3s;
+}
+
+.meta-dot {
+  margin: 0 2px;
+  font-size: 1.4rem;
+  line-height: 1.2;
+}
+
+#post-metas .post-meta-content a {
+  color: inherit;
+  font-size: inherit;
+  transition: all 0.2s;
 
   &:hover {
     color: var(--anzhiyu-main);
-    background: var(--anzhiyu-white);
   }
 }
 
-.tag_share .post-meta__tag-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.tag_share .post-meta__tag-list i.anzhiyu-icon-hashtag {
-  font-size: 17px;
-  opacity: 0.6;
-}
-
-.tag_share .post-meta__tag-list .tags-name {
-  margin-left: 4px;
-  font-size: 1rem;
-  color: var(--anzhiyu-white);
-  transition: color 0.3s;
-}
-
-.post-meta__tags {
+#post-metas .post-tag-item {
   display: inline-flex;
   align-items: center;
-  height: 32px;
-  padding: 0 12px 0 8px;
-  font-size: 1rem;
-  white-space: nowrap;
-  border-radius: 12px;
-  opacity: 0.8;
-  transition: all 0.3s;
+}
 
-  &:hover {
-    color: var(--anzhiyu-white);
-    background: var(--anzhiyu-white-op);
-    opacity: 1;
-  }
+#post-metas .post-commentcount {
+  cursor: pointer;
 }
 
 .post-title {
@@ -592,62 +499,7 @@ const scrollToComment = (event: Event) => {
   font-weight: 700;
   line-height: 1.2;
   text-align: left;
-}
-
-.post-meta {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  font-size: 1rem;
-  opacity: 0.9;
-}
-
-.post-meta .meta-firstline,
-.post-meta .meta-secondline {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem 0;
-  align-items: center;
-}
-
-.post-meta-icon {
-  margin-right: 0.4rem;
-}
-
-.post-meta-label {
-  margin-right: 0.2rem;
-}
-
-.post-meta-separator {
-  margin: 0 0.15rem;
-}
-
-.post-meta-date,
-.post-meta-wordcount,
-.post-meta-viewcount,
-.post-meta-position,
-.post-meta-commentcount {
-  display: inline-flex;
-  align-items: center;
-  opacity: 0.6;
-  transition: 0.3s;
-  border-radius: 12px;
-  padding: 2px 8px;
-  cursor: default;
-}
-
-.post-meta-commentcount {
-  cursor: pointer;
-  font-weight: 800;
-
-  &:hover {
-    opacity: 1;
-    background: var(--anzhiyu-white-op);
-  }
-}
-
-.hidden-update-time {
-  display: none !important;
+  padding-bottom: 1rem;
 }
 
 .main-hero-waves-area {
@@ -718,84 +570,6 @@ const scrollToComment = (event: Event) => {
 
   & > use:nth-child(4) {
     fill: rgb(0 0 0 / 39%);
-  }
-}
-
-@media (width <= 768px) {
-  .main-hero-waves-area.waves-area {
-    display: none;
-    visibility: hidden;
-  }
-
-  .post-info {
-    position: absolute;
-    top: auto;
-    bottom: 0;
-    left: 0;
-    gap: 0;
-    align-items: center;
-    justify-content: normal;
-    height: fit-content;
-    padding: 11rem 6% 1rem;
-    background-image: linear-gradient(
-      to bottom,
-      var(--anzhiyu-none),
-      var(--anzhiyu-main)
-    );
-
-    .tag_share {
-      display: none;
-    }
-
-    .post-meta {
-      align-items: center;
-      margin-top: 1rem;
-    }
-
-    .post-meta .meta-firstline,
-    .post-meta .meta-secondline {
-      justify-content: center;
-      font-size: 0.75rem;
-    }
-  }
-
-  .post-top-cover {
-    position: fixed;
-    z-index: 1;
-    width: 100%;
-    height: 30rem;
-    margin: 0 0 0 auto;
-    filter: blur(0);
-    opacity: 1;
-    transform: rotate(0) translateY(0) scale(1);
-
-    &::after {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 70%;
-      content: "";
-      box-shadow: 0 0 105px 99px var(--anzhiyu-main) inset;
-    }
-
-    .post-top-bg {
-      height: 70%;
-      min-height: 18.75rem;
-      filter: none;
-      border-radius: 0;
-      opacity: 1;
-    }
-  }
-
-  .post-header-container {
-    z-index: 1;
-    height: 30rem;
-    background-color: var(--anzhiyu-main);
-
-    &::before {
-      display: none;
-    }
   }
 }
 </style>
