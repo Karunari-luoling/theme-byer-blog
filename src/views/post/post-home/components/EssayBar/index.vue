@@ -247,7 +247,6 @@ onBeforeUnmount(() => {
 @media (width <= 768px) {
   .essay-bar-container {
     padding: 0 1rem;
-    margin: 0 1rem;
   }
   .essay-more-btn {
     font-size: 1.125rem;

@@ -371,7 +371,7 @@ const scrollToComment = (event: Event) => {
   display: flex;
   justify-content: center;
   width: 100%;
-  height: 26rem;
+  height: 30rem;
   min-height: 300px;
   overflow: hidden;
   color: var(--anzhiyu-white);

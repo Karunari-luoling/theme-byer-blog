@@ -228,7 +228,7 @@ onMounted(() => {
     display: flex;
     flex-wrap: wrap;
     gap: 0.625rem;
-    justify-content: space-between;
+    justify-content: flex-start;
   }
 }
 
