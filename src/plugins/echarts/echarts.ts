@@ -63,4 +63,3 @@ echarts.use([
 ]);
 
 export default echarts;
-

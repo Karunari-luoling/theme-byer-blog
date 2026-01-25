@@ -1360,7 +1360,9 @@ defineExpose({
   position: relative;
   width: 100%;
   height: 100%;
-  overflow: hidden auto;
+  overflow-x: hidden; // 禁止水平滚动
+  overflow-y: auto; // 只允许垂直滚动
+  touch-action: pan-y; // 移动端只允许垂直拖拽，禁止水平拖拽
 
   // 添加渐隐遮罩效果
   mask: linear-gradient(

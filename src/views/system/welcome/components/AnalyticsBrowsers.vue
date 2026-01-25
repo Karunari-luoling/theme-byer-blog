@@ -34,7 +34,14 @@ const renderChart = () => {
         animationEasing: "exponentialInOut",
         animationType: "scale",
         center: ["50%", "50%"],
-        color: ["#5ab1ef", "#b6a2de", "#67e0e3", "#2ec7c9", "#ffb980", "#d87a80"],
+        color: [
+          "#5ab1ef",
+          "#b6a2de",
+          "#67e0e3",
+          "#2ec7c9",
+          "#ffb980",
+          "#d87a80"
+        ],
         data:
           chartData.length > 0
             ? chartData.sort((a, b) => a.value - b.value)
@@ -89,4 +96,3 @@ watch(
 <template>
   <EchartsUI ref="chartRef" height="280px" />
 </template>
-

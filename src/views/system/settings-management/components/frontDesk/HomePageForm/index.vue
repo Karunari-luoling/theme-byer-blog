@@ -232,13 +232,17 @@
       </el-empty>
 
       <!-- 菜单项列表 -->
-      <div v-else class="menu-items">
+      <div v-else ref="menuListRef" class="menu-items">
         <div
           v-for="(menuItem, index) in model.menu"
           :key="`menu-${index}`"
           class="menu-item-row"
         >
           <div class="item-main">
+            <!-- 拖拽手柄 -->
+            <div class="drag-handle" title="拖拽排序">
+              <el-icon><Rank /></el-icon>
+            </div>
             <div class="item-info">
               <div class="item-title">
                 <el-icon
@@ -556,8 +560,32 @@
       @update:model-value="updateFooterOwnerSince"
     />
   </el-form-item>
+  <el-form-item label="底部栏作者链接">
+    <el-input
+      :model-value="model.footerBarAuthorLink"
+      placeholder="/about"
+      clearable
+      @update:model-value="updateFooterBarAuthorLink"
+    />
+  </el-form-item>
+  <el-form-item label="底部栏CC协议链接">
+    <el-input
+      :model-value="model.footerBarCCLink"
+      placeholder="/copyright"
+      clearable
+      @update:model-value="updateFooterBarCCLink"
+    />
+  </el-form-item>
+  <el-form-item label="页脚列表随机友链数量">
+    <el-input
+      :model-value="model.footerListRandomFriends"
+      placeholder="例如：3"
+      clearable
+      @update:model-value="updateFooterListRandomFriends"
+    />
+  </el-form-item>
 
-  <el-divider content-position="left">网站运行时间</el-divider>
+  <el-divider content-position="left">页脚运行时间</el-divider>
   <el-form-item label="启用页脚运行时间模块">
     <el-switch
       :model-value="model.footerRuntimeEnable"
@@ -616,165 +644,46 @@
     <div class="form-item-help">下班时间显示的状态描述文字</div>
   </el-form-item>
 
-  <el-divider content-position="left">链接配置</el-divider>
-  <el-form-item label="页脚列表随机友链数量">
-    <el-input
-      :model-value="model.footerListRandomFriends"
-      placeholder="例如：3"
-      clearable
-      @update:model-value="updateFooterListRandomFriends"
-    />
-  </el-form-item>
-
-  <el-divider content-position="left">音乐播放器配置</el-divider>
-  <el-form-item label="启用音乐播放器">
-    <el-switch
-      :model-value="model.music?.player?.enable"
-      @update:model-value="updateMusicPlayerEnable"
-    />
-    <div
-      style="
-        margin-left: 8px;
-        font-size: 12px;
-        color: var(--anzhiyu-secondtext);
-      "
-    >
-      是否在前端页面显示音乐播放器组件
-    </div>
-  </el-form-item>
-  <el-form-item label="播放列表ID">
-    <el-input
-      :model-value="model.music?.player?.playlist_id"
-      placeholder="例如：8152976493"
-      clearable
-      @update:model-value="updateMusicPlayerPlaylistId"
-    />
-    <div
-      style="margin-top: 8px; font-size: 12px; color: var(--anzhiyu-secondtext)"
-    >
-      网易云音乐歌单ID，用于前端音乐播放器获取歌曲列表
+  <el-divider content-position="left">Uptime Kuma 状态监控</el-divider>
+  <el-form-item label="启用状态显示">
+    <div>
+      <el-switch
+        :model-value="model.footerUptimeKumaEnable"
+        @update:model-value="updateFooterUptimeKumaEnable"
+      />
+      <div class="form-item-help">在页脚显示 Uptime Kuma 业务状态</div>
     </div>
   </el-form-item>
 
-  <el-form-item label="自定义歌单JSON链接">
-    <el-input
-      :model-value="model.music?.player?.custom_playlist || ''"
-      placeholder="https://ik.imagekit.io/anzhiyu/music_8fjmi9igk.json?updatedAt=1759035600818"
-      clearable
-      @update:model-value="updateMusicPlayerCustomPlaylist"
-    />
-    <div
-      style="margin-top: 8px; font-size: 12px; color: var(--anzhiyu-secondtext)"
-    >
-      指向包含歌单信息的JSON文件的链接地址，配置后将不再使用歌单id，而是使用
-      json中的内容作为歌单列表，如果json内容有误将无法显示音乐。
-    </div>
-  </el-form-item>
-  <el-form-item label="音乐API地址">
-    <el-input
-      :model-value="model.music?.api?.base_url || ''"
-      placeholder="https://metings.qjqq.cn"
-      clearable
-      @update:model-value="updateMusicAPIBaseURL"
-    />
-    <div
-      style="margin-top: 8px; font-size: 12px; color: var(--anzhiyu-secondtext)"
-    >
-      音乐API基础地址（不带末尾斜杠），用于获取歌曲信息和播放地址。默认为
-      https://metings.qjqq.cn。可使用
-      <a
-        href="https://github.com/Suxiaoqinx/Netease_url"
-        target="_blank"
-        style="color: var(--anzhiyu-main)"
-        >Netease_url</a
+  <el-collapse-transition>
+    <div v-if="model.footerUptimeKumaEnable">
+      <el-form-item
+        label="状态页地址"
+        :class="{
+          'is-warning':
+            model.footerUptimeKumaEnable && !model.footerUptimeKumaPageURL
+        }"
       >
-      项目自行部署音乐API，支持无损音质解析。
+        <el-input
+          :model-value="model.footerUptimeKumaPageURL"
+          placeholder="例如：https://status.example.com/status/main"
+          clearable
+          @update:model-value="updateFooterUptimeKumaPageURL"
+        />
+        <div class="form-item-help">
+          Uptime Kuma 状态页完整地址，点击状态指示器将跳转到此页面
+          <span
+            v-if="!model.footerUptimeKumaPageURL"
+            style="color: var(--el-color-warning); margin-left: 4px"
+          >
+            （请填写状态页地址）
+          </span>
+        </div>
+      </el-form-item>
     </div>
-  </el-form-item>
-  <el-form-item label="唱片背景图">
-    <el-input
-      :model-value="model.music?.vinyl?.background || ''"
-      placeholder="/static/img/music-vinyl-background.png"
-      clearable
-      @update:model-value="updateMusicVinylBackground"
-    />
-    <div
-      style="margin-top: 8px; font-size: 12px; color: var(--anzhiyu-secondtext)"
-    >
-      音乐播放器唱片背景图片，默认为 /static/img/music-vinyl-background.png
-    </div>
-  </el-form-item>
-  <el-form-item label="唱片外圈图">
-    <el-input
-      :model-value="model.music?.vinyl?.outer || ''"
-      placeholder="/static/img/music-vinyl-outer.png"
-      clearable
-      @update:model-value="updateMusicVinylOuter"
-    />
-    <div
-      style="margin-top: 8px; font-size: 12px; color: var(--anzhiyu-secondtext)"
-    >
-      音乐播放器唱片外圈图片，默认为 /static/img/music-vinyl-outer.png
-    </div>
-  </el-form-item>
-  <el-form-item label="唱片内圈图">
-    <el-input
-      :model-value="model.music?.vinyl?.inner || ''"
-      placeholder="/static/img/music-vinyl-inner.png"
-      clearable
-      @update:model-value="updateMusicVinylInner"
-    />
-    <div
-      style="margin-top: 8px; font-size: 12px; color: var(--anzhiyu-secondtext)"
-    >
-      音乐播放器唱片内圈图片，默认为 /static/img/music-vinyl-inner.png
-    </div>
-  </el-form-item>
-  <el-form-item label="撞针图">
-    <el-input
-      :model-value="model.music?.vinyl?.needle || ''"
-      placeholder="/static/img/music-vinyl-needle.png"
-      clearable
-      @update:model-value="updateMusicVinylNeedle"
-    />
-    <div
-      style="margin-top: 8px; font-size: 12px; color: var(--anzhiyu-secondtext)"
-    >
-      音乐播放器撞针图片，默认为 /static/img/music-vinyl-needle.png
-    </div>
-  </el-form-item>
-  <el-form-item label="凹槽背景图">
-    <el-input
-      :model-value="model.music?.vinyl?.groove || ''"
-      placeholder="/static/img/music-vinyl-groove.png"
-      clearable
-      @update:model-value="updateMusicVinylGroove"
-    />
-    <div
-      style="margin-top: 8px; font-size: 12px; color: var(--anzhiyu-secondtext)"
-    >
-      音乐播放器凹槽背景图片，默认为 /static/img/music-vinyl-groove.png
-    </div>
-  </el-form-item>
+  </el-collapse-transition>
 
-  <el-form-item label="底部栏作者链接">
-    <el-input
-      :model-value="model.footerBarAuthorLink"
-      placeholder="/about"
-      clearable
-      @update:model-value="updateFooterBarAuthorLink"
-    />
-  </el-form-item>
-  <el-form-item label="底部栏CC协议链接">
-    <el-input
-      :model-value="model.footerBarCCLink"
-      placeholder="/copyright"
-      clearable
-      @update:model-value="updateFooterBarCCLink"
-    />
-  </el-form-item>
-
-  <el-divider content-position="left">图片配置</el-divider>
+  <el-divider content-position="left">页脚社交与徽标配置</el-divider>
   <el-form-item label="社交链接栏中间图片 URL">
     <el-input
       :model-value="model.footerSocialBarCenterImg"
@@ -868,7 +777,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from "vue";
+import { ref, watch, onMounted, onBeforeUnmount, nextTick } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import {
   Plus,
@@ -880,8 +789,10 @@ import {
   Menu,
   Setting,
   Warning,
-  CircleCheck
+  CircleCheck,
+  Rank
 } from "@element-plus/icons-vue";
+import Sortable from "sortablejs";
 import type {
   HomePageSettingsInfo,
   JsonEditorTableColumn,
@@ -1244,6 +1155,70 @@ const validateAndShowResults = () => {
 const editingMenuIndex = ref(-1);
 const editingMenuTitle = ref("");
 
+// 拖拽排序相关
+const menuListRef = ref<HTMLElement | null>(null);
+let sortableInstance: Sortable | null = null;
+
+// 初始化拖拽排序
+const initSortable = () => {
+  nextTick(() => {
+    if (menuListRef.value && !sortableInstance) {
+      sortableInstance = Sortable.create(menuListRef.value, {
+        animation: 200,
+        handle: ".drag-handle",
+        ghostClass: "menu-item-ghost",
+        chosenClass: "menu-item-chosen",
+        dragClass: "menu-item-drag",
+        onEnd: (evt: Sortable.SortableEvent) => {
+          const { oldIndex, newIndex } = evt;
+          if (
+            oldIndex !== undefined &&
+            newIndex !== undefined &&
+            oldIndex !== newIndex
+          ) {
+            const currentMenu = [...(model.value.menu || [])];
+            const [movedItem] = currentMenu.splice(oldIndex, 1);
+            currentMenu.splice(newIndex, 0, movedItem);
+            updateMenu(currentMenu);
+            ElMessage.success("菜单顺序已更新");
+          }
+        }
+      });
+    }
+  });
+};
+
+// 销毁拖拽排序实例
+const destroySortable = () => {
+  if (sortableInstance) {
+    sortableInstance.destroy();
+    sortableInstance = null;
+  }
+};
+
+// 监听菜单数据变化，重新初始化拖拽
+watch(
+  () => model.value.menu?.length,
+  newLength => {
+    // 无论菜单是否为空，都先销毁旧实例避免内存泄漏
+    destroySortable();
+    // 只有当菜单有数据时才重新初始化
+    if (newLength && newLength > 0) {
+      initSortable();
+    }
+  }
+);
+
+onMounted(() => {
+  if (model.value.menu && model.value.menu.length > 0) {
+    initSortable();
+  }
+});
+
+onBeforeUnmount(() => {
+  destroySortable();
+});
+
 // 设置面板状态
 const settingsDrawerVisible = ref(false);
 const currentEditingMenu = ref(null);
@@ -1551,6 +1526,21 @@ const updateFooterRuntimeOffDutyDesc = (newValue: string) => {
   };
 };
 
+// --- Uptime Kuma 状态监控更新函数 ---
+const updateFooterUptimeKumaEnable = (newValue: boolean) => {
+  model.value = {
+    ...model.value,
+    footerUptimeKumaEnable: !!newValue
+  };
+};
+
+const updateFooterUptimeKumaPageURL = (newValue: string) => {
+  model.value = {
+    ...model.value,
+    footerUptimeKumaPageURL: newValue
+  };
+};
+
 const updateFooterListRandomFriends = (newCount: string) => {
   model.value = {
     ...model.value,
@@ -1586,122 +1576,6 @@ const updateFooterBadgesEnable = (newValue: boolean) => {
   };
 };
 
-const updateMusicPlayerEnable = (newValue: boolean) => {
-  model.value = {
-    ...model.value,
-    music: {
-      ...model.value.music,
-      player: {
-        ...model.value.music?.player,
-        enable: !!newValue
-      }
-    }
-  };
-};
-
-const updateMusicPlayerPlaylistId = (newId: string) => {
-  model.value = {
-    ...model.value,
-    music: {
-      ...model.value.music,
-      player: {
-        ...model.value.music?.player,
-        playlist_id: newId
-      }
-    }
-  };
-};
-
-const updateMusicPlayerCustomPlaylist = (newPlaylist: string) => {
-  model.value = {
-    ...model.value,
-    music: {
-      ...model.value.music,
-      player: {
-        ...model.value.music?.player,
-        custom_playlist: newPlaylist
-      }
-    }
-  };
-};
-
-const updateMusicAPIBaseURL = (newURL: string) => {
-  model.value = {
-    ...model.value,
-    music: {
-      ...model.value.music,
-      api: {
-        ...model.value.music?.api,
-        base_url: newURL
-      }
-    }
-  };
-};
-
-const updateMusicVinylBackground = (newBackground: string) => {
-  model.value = {
-    ...model.value,
-    music: {
-      ...model.value.music,
-      vinyl: {
-        ...model.value.music?.vinyl,
-        background: newBackground
-      }
-    }
-  };
-};
-
-const updateMusicVinylOuter = (newOuter: string) => {
-  model.value = {
-    ...model.value,
-    music: {
-      ...model.value.music,
-      vinyl: {
-        ...model.value.music?.vinyl,
-        outer: newOuter
-      }
-    }
-  };
-};
-
-const updateMusicVinylInner = (newInner: string) => {
-  model.value = {
-    ...model.value,
-    music: {
-      ...model.value.music,
-      vinyl: {
-        ...model.value.music?.vinyl,
-        inner: newInner
-      }
-    }
-  };
-};
-
-const updateMusicVinylNeedle = (newNeedle: string) => {
-  model.value = {
-    ...model.value,
-    music: {
-      ...model.value.music,
-      vinyl: {
-        ...model.value.music?.vinyl,
-        needle: newNeedle
-      }
-    }
-  };
-};
-
-const updateMusicVinylGroove = (newGroove: string) => {
-  model.value = {
-    ...model.value,
-    music: {
-      ...model.value.music,
-      vinyl: {
-        ...model.value.music?.vinyl,
-        groove: newGroove
-      }
-    }
-  };
-};
 </script>
 
 <style scoped lang="scss">
@@ -1810,6 +1684,39 @@ const updateMusicVinylGroove = (newGroove: string) => {
           &:hover {
             border-color: var(--anzhiyu-theme);
             box-shadow: 0 2px 8px rgb(0 0 0 / 4%);
+
+            .drag-handle {
+              opacity: 1;
+            }
+          }
+
+          .drag-handle {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            margin-right: 12px;
+            color: var(--anzhiyu-secondtext);
+            cursor: grab;
+            background: var(--anzhiyu-card-bg);
+            border-radius: 6px;
+            opacity: 0.6;
+            transition: all 0.2s;
+
+            &:hover {
+              color: var(--anzhiyu-theme);
+              background: var(--anzhiyu-theme-op);
+              opacity: 1;
+            }
+
+            &:active {
+              cursor: grabbing;
+            }
+
+            .el-icon {
+              font-size: 18px;
+            }
           }
 
           .item-info {
@@ -2086,6 +1993,33 @@ const updateMusicVinylGroove = (newGroove: string) => {
         color: var(--anzhiyu-secondtext);
       }
     }
+  }
+}
+
+/* 拖拽排序样式 */
+.menu-item-ghost {
+  opacity: 0.5;
+
+  .item-main {
+    background: var(--anzhiyu-theme-op) !important;
+    border-color: var(--anzhiyu-theme) !important;
+    border-style: dashed !important;
+  }
+}
+
+.menu-item-chosen {
+  .item-main {
+    box-shadow: 0 4px 16px rgb(0 0 0 / 15%) !important;
+    transform: scale(1.02);
+  }
+}
+
+.menu-item-drag {
+  opacity: 0.9;
+
+  .item-main {
+    background: var(--anzhiyu-card-bg) !important;
+    box-shadow: 0 8px 24px rgb(0 0 0 / 20%) !important;
   }
 }
 

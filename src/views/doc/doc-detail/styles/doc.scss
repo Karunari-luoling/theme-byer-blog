@@ -1,0 +1,400 @@
+/**
+ * @Description: 文档页面样式 - 严格还原 anheyu-docs 设计
+ * @Author: 安知鱼
+ * @Date: 2025-12-30
+ */
+
+// 文档页面主容器
+.doc-page {
+  min-height: 100vh;
+  padding-top: 60px; // 为固定的 header 留出空间
+  background-color: var(--anzhiyu-background);
+}
+
+// 顶部渐变遮罩 - 模拟内容消失效果
+.doc-top-fade {
+  position: fixed;
+  top: 60px; // header 高度是60px
+  // 使用 max() 确保在宽屏居中时也能正确对齐（加上16px内边距）
+  left: max(256px, calc(50vw - 444px)); // 240px + 16px padding
+  right: max(248px, calc(50vw - 452px)); // 200px + 32px + 16px padding
+  z-index: 10;
+  height: 40px;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    var(--anzhiyu-background) 0%,
+    var(--anzhiyu-background) 25%,
+    transparent 100%
+  );
+}
+
+// 三栏布局容器
+.doc-container {
+  display: flex;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 16px; // 左右留出间距
+  transition: padding-left 0.3s ease;
+
+  // 侧边栏收起时
+  &.sidebar-collapsed {
+    padding-left: 16px;
+  }
+}
+
+// PC端收起后的悬浮块
+.sidebar-collapsed-float {
+  position: fixed;
+  top: 80px;
+  left: 16px;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  padding: 2px;
+  background: var(--anzhiyu-card-bg);
+  border: var(--style-border);
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  animation: floatIn 0.25s ease-out;
+
+  .float-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: var(--anzhiyu-secondtext);
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all 0.2s;
+
+    &:hover {
+      background: rgba(0, 0, 0, 0.06);
+      color: var(--anzhiyu-fontcolor);
+    }
+
+    &:active {
+      background: rgba(0, 0, 0, 0.1);
+    }
+
+    svg {
+      flex-shrink: 0;
+    }
+  }
+}
+
+@keyframes floatIn {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+// 左侧边栏
+.doc-sidebar-left {
+  position: sticky;
+  top: 80px;
+  flex-shrink: 0;
+  width: 240px;
+  height: calc(100vh - 100px);
+  background-color: transparent;
+  overflow: hidden;
+  transition:
+    width 0.3s ease,
+    opacity 0.3s ease,
+    transform 0.3s ease;
+
+  // 内部侧边栏组件添加圆角
+  .doc-sidebar {
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  // PC端收起状态
+  &.is-collapsed {
+    width: 0;
+    opacity: 0;
+    transform: translateX(-20px);
+    pointer-events: none;
+  }
+
+  // 自定义滚动条
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background-color: var(--anzhiyu-card-border);
+    border-radius: 2px;
+  }
+}
+
+// 中间内容区
+.doc-main {
+  position: relative; // 用于定位加载遮罩层
+  flex: 1;
+  min-width: 0;
+  min-height: calc(100vh - 100px); // 防止切换文章时高度塌陷
+  background-color: var(--anzhiyu-background);
+}
+
+// 右侧目录
+.doc-sidebar-right {
+  flex-shrink: 0;
+  width: 200px;
+}
+
+// 加载遮罩层 - 切换文章时显示
+.doc-loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 5;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 120px;
+  background: var(--anzhiyu-background);
+  pointer-events: none;
+
+  .loading-spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid var(--anzhiyu-card-border);
+    border-top-color: var(--anzhiyu-main);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+}
+
+// 内容加载中的样式
+.doc-content.is-loading {
+  opacity: 0.5;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+// 加载过渡动画
+.doc-loading-fade-enter-active,
+.doc-loading-fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.doc-loading-fade-enter-from,
+.doc-loading-fade-leave-to {
+  opacity: 0;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+// 首次加载骨架屏
+.doc-loading {
+  padding: 40px 24px;
+  max-width: 768px;
+  margin: 0 auto;
+
+  .loading-skeleton {
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+
+  .skeleton-title {
+    height: 36px;
+    background: linear-gradient(
+      90deg,
+      var(--anzhiyu-card-bg) 25%,
+      var(--anzhiyu-card-border) 50%,
+      var(--anzhiyu-card-bg) 75%
+    );
+    background-size: 200% 100%;
+    border-radius: 4px;
+    margin-bottom: 24px;
+  }
+
+  .skeleton-line {
+    height: 16px;
+    background: linear-gradient(
+      90deg,
+      var(--anzhiyu-card-bg) 25%,
+      var(--anzhiyu-card-border) 50%,
+      var(--anzhiyu-card-bg) 75%
+    );
+    background-size: 200% 100%;
+    border-radius: 4px;
+    margin-bottom: 12px;
+
+    &.short {
+      width: 60%;
+    }
+  }
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+// 移动端侧边栏切换按钮
+.mobile-sidebar-toggle {
+  display: none;
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 100;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background-color: #425aef;
+  color: #fff;
+  border: none;
+  box-shadow: 0 4px 12px rgba(66, 90, 239, 0.4);
+  cursor: pointer;
+  transition: transform 0.2s ease;
+
+  &:hover {
+    transform: scale(1.05);
+  }
+
+  i {
+    font-size: 20px;
+  }
+}
+
+// 移动端侧边栏遮罩
+.mobile-sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 99;
+}
+
+// 响应式布局
+@media (max-width: 1200px) {
+  .doc-sidebar-right {
+    display: none;
+  }
+
+  .doc-top-fade {
+    right: 0; // 右侧边栏隐藏时扩展到边缘
+  }
+}
+
+@media (max-width: 900px) {
+  .doc-container {
+    flex-direction: column;
+    padding: 0; // 移动端不需要左右内边距
+
+    // 移动端不需要收起状态
+    &.sidebar-collapsed {
+      padding-left: 0;
+    }
+  }
+
+  // 移动端隐藏悬浮块
+  .sidebar-collapsed-float {
+    display: none;
+  }
+
+  .doc-sidebar-left {
+    position: fixed;
+    top: 80px;
+    left: -280px;
+    width: 280px;
+    height: calc(100vh - 100px);
+    z-index: 100;
+    transition: left 0.3s ease;
+    background: var(--anzhiyu-card-bg);
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+    overflow: hidden;
+
+    &.is-open {
+      left: 16px; // 往右偏移一些
+    }
+
+    // 移动端忽略收起状态
+    &.is-collapsed {
+      width: 280px;
+      opacity: 1;
+      transform: none;
+      pointer-events: auto;
+    }
+
+    // 移动端侧边栏内部组件去掉边框，避免重复
+    .doc-sidebar {
+      border: none;
+      border-radius: 0;
+    }
+  }
+
+  .mobile-sidebar-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .mobile-sidebar-overlay {
+    &.is-open {
+      display: block;
+    }
+  }
+
+  .doc-main {
+    padding-top: 0;
+  }
+
+  .doc-top-fade {
+    left: 0; // 移动端左侧边栏隐藏
+    right: 0;
+  }
+}
+
+// 暗色模式适配
+[data-theme="dark"] {
+  // 暗色模式下的悬浮块
+  .sidebar-collapsed-float {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+
+    .float-btn {
+      &:hover {
+        background: rgba(255, 255, 255, 0.08);
+      }
+
+      &:active {
+        background: rgba(255, 255, 255, 0.12);
+      }
+    }
+  }
+}
+
+// 移动端暗色模式
+@media (max-width: 900px) {
+  [data-theme="dark"] {
+    .doc-sidebar-left {
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    }
+  }
+}

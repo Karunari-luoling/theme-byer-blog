@@ -76,6 +76,11 @@ const getPageUrl = (p: number) => {
     if (p === 1) return "/archives";
     return `/archives/page/${p}`;
   }
+  // 检查是否在商品列表页
+  else if (path.startsWith("/products")) {
+    if (p === 1) return "/products";
+    return `/products/page/${p}`;
+  }
   // 否则就是首页
   else {
     if (p === 1) return "/";

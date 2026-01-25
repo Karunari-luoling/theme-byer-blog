@@ -356,12 +356,28 @@ const handleCreateOrder = async () => {
 
     // 处理二维码显示
     if (orderData.value.payment_result.qr_code) {
-      if (selectedProvider.value === "ALIPAY") {
-        // 支付宝当面付：将支付链接转换为二维码图片
+      const qrCodeContent = orderData.value.payment_result.qr_code;
+
+      // 判断 qr_code 的内容类型
+      // 如果是 URL（http/https/weixin 等协议）或普通字符串，需要通过 QRCode 库生成二维码图片
+      // 如果是 base64 图片数据，则直接使用
+      const isBase64Image =
+        qrCodeContent.startsWith("data:image/") ||
+        /^[A-Za-z0-9+/]+=*$/.test(qrCodeContent.replace(/\s/g, ""));
+      const isUrl =
+        qrCodeContent.startsWith("http://") ||
+        qrCodeContent.startsWith("https://") ||
+        qrCodeContent.startsWith("weixin://");
+
+      if (isBase64Image && !isUrl) {
+        // 是 base64 图片数据，直接使用（原生微信支付返回的二维码）
+        qrCodeUrl.value = qrCodeContent.startsWith("data:")
+          ? qrCodeContent
+          : `data:image/png;base64,${qrCodeContent}`;
+      } else {
+        // 是 URL 或支付链接字符串，需要生成二维码图片（支付宝当面付或易支付返回的链接）
         try {
-          qrCodeUrl.value = await generateQRCode(
-            orderData.value.payment_result.qr_code
-          );
+          qrCodeUrl.value = await generateQRCode(qrCodeContent);
         } catch (error) {
           ElMessage.error("生成支付二维码失败");
           paymentStatus.value = {
@@ -371,12 +387,6 @@ const handleCreateOrder = async () => {
           };
           return;
         }
-      } else {
-        // 微信支付：直接使用后端返回的二维码图片（Base64格式）
-        const base64QR = orderData.value.payment_result.qr_code;
-        qrCodeUrl.value = base64QR.startsWith("data:")
-          ? base64QR
-          : `data:image/png;base64,${base64QR}`;
       }
     } else if (orderData.value.payment_result.payment_url) {
       window.open(orderData.value.payment_result.payment_url, "_blank");

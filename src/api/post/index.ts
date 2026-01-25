@@ -35,7 +35,19 @@ import type {
   FullTextHiddenForm,
   // 导入导出
   ImportArticleOptions,
-  ImportArticleResult
+  ImportArticleResult,
+  // 文档系列
+  DocSeriesResponse,
+  DocSeriesListResponse,
+  DocSeriesForm,
+  DocSeriesWithArticles,
+  // 混合内容流
+  FeedListResponse,
+  GetFeedListParams,
+  // 批量删除
+  BatchDeleteResult,
+  // 文章统计
+  ArticleStatistics
 } from "./type";
 
 // ===================================
@@ -49,6 +61,17 @@ export const getArticleList = (
   return http.request<BaseResponse<ArticleListResponse>>(
     "get",
     baseUrlApi("articles"),
+    { params }
+  );
+};
+
+/** @description 获取混合内容流（文章+商品） */
+export const getFeedList = (
+  params: GetFeedListParams
+): Promise<BaseResponse<FeedListResponse>> => {
+  return http.request<BaseResponse<FeedListResponse>>(
+    "get",
+    baseUrlApi("pro/public/feed"),
     { params }
   );
 };
@@ -94,6 +117,17 @@ export const deleteArticle = (id: string): Promise<BaseResponse<null>> => {
   return http.request<BaseResponse<null>>(
     "delete",
     baseUrlApi(`articles/${id}`)
+  );
+};
+
+/** @description 批量删除文章（仅管理员可用） */
+export const batchDeleteArticles = (
+  ids: string[]
+): Promise<BaseResponse<BatchDeleteResult>> => {
+  return http.request<BaseResponse<BatchDeleteResult>>(
+    "delete",
+    baseUrlApi("pro/articles/batch"),
+    { data: { ids } }
   );
 };
 
@@ -239,6 +273,16 @@ export const getArticleArchives = (): Promise<
   return http.request<BaseResponse<ArchiveSummaryResponse>>(
     "get",
     baseUrlApi("public/articles/archives")
+  );
+};
+
+/** @description [公开]获取文章统计数据 */
+export const getArticleStatistics = (): Promise<
+  BaseResponse<ArticleStatistics>
+> => {
+  return http.request<BaseResponse<ArticleStatistics>>(
+    "get",
+    baseUrlApi("public/articles/statistics")
   );
 };
 
@@ -420,5 +464,94 @@ export const importArticles = (
       },
       timeout: 300000 // 5分钟超时（导入可能需要较长时间）
     }
+  );
+};
+
+// ===================================
+//          文档系列 (DocSeries)
+// ===================================
+
+/** @description 获取文档系列列表 */
+export const getDocSeriesList = (params?: {
+  page?: number;
+  pageSize?: number;
+}): Promise<BaseResponse<DocSeriesListResponse>> => {
+  return http.request<BaseResponse<DocSeriesListResponse>>(
+    "get",
+    baseUrlApi("doc-series"),
+    { params }
+  );
+};
+
+/** @description [公开]获取文档系列列表 */
+export const getPublicDocSeriesList = (params?: {
+  page?: number;
+  pageSize?: number;
+}): Promise<BaseResponse<DocSeriesListResponse>> => {
+  return http.request<BaseResponse<DocSeriesListResponse>>(
+    "get",
+    baseUrlApi("public/doc-series"),
+    { params }
+  );
+};
+
+/** @description [公开]获取文档系列详情 */
+export const getPublicDocSeries = (
+  id: string
+): Promise<BaseResponse<DocSeriesResponse>> => {
+  return http.request<BaseResponse<DocSeriesResponse>>(
+    "get",
+    baseUrlApi(`public/doc-series/${id}`)
+  );
+};
+
+/** @description [公开]获取文档系列及其文章列表 */
+export const getPublicDocSeriesWithArticles = (
+  id: string
+): Promise<BaseResponse<DocSeriesWithArticles>> => {
+  return http.request<BaseResponse<DocSeriesWithArticles>>(
+    "get",
+    baseUrlApi(`public/doc-series/${id}/articles`)
+  );
+};
+
+/** @description 获取单个文档系列 */
+export const getDocSeries = (
+  id: string
+): Promise<BaseResponse<DocSeriesResponse>> => {
+  return http.request<BaseResponse<DocSeriesResponse>>(
+    "get",
+    baseUrlApi(`doc-series/${id}`)
+  );
+};
+
+/** @description 创建新文档系列 */
+export const createDocSeries = (
+  data: DocSeriesForm
+): Promise<BaseResponse<DocSeriesResponse>> => {
+  return http.request<BaseResponse<DocSeriesResponse>>(
+    "post",
+    baseUrlApi("doc-series"),
+    { data }
+  );
+};
+
+/** @description 更新文档系列 */
+export const updateDocSeries = (
+  id: string,
+  data: DocSeriesForm
+): Promise<BaseResponse<DocSeriesResponse>> => {
+  return http.request<BaseResponse<DocSeriesResponse>>(
+    "put",
+    baseUrlApi(`doc-series/${id}`),
+    { data }
+  );
+};
+
+/** @description 删除文档系列 */
+export const deleteDocSeries = (id: string): Promise<BaseResponse<null>> => {
+  return http.request<BaseResponse<null>>(
+    "delete",
+    baseUrlApi(`doc-series/${id}`)
   );
 };

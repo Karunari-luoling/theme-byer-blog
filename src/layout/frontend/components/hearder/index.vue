@@ -115,8 +115,8 @@
                 <IconifyIconOnline
                   v-else-if="menuItem.icon && menuItem.icon.includes(':')"
                   :icon="menuItem.icon"
-                  width="16"
-                  height="16"
+                  width="1em"
+                  height="1em"
                   class="menu-icon menu-icon-iconify"
                 />
                 <!-- anzhiyu 图标 -->
@@ -163,8 +163,8 @@
                       <IconifyIconOnline
                         v-else-if="item.icon && item.icon.includes(':')"
                         :icon="item.icon"
-                        width="16"
-                        height="16"
+                        width="1em"
+                        height="1em"
                         class="menu-icon menu-icon-iconify"
                       />
                       <!-- anzhiyu 图标 -->
@@ -196,8 +196,8 @@
                       <IconifyIconOnline
                         v-else-if="item.icon && item.icon.includes(':')"
                         :icon="item.icon"
-                        width="16"
-                        height="16"
+                        width="1em"
+                        height="1em"
                         class="menu-icon menu-icon-iconify"
                       />
                       <!-- anzhiyu 图标 -->
@@ -234,8 +234,8 @@
                       <IconifyIconOnline
                         v-else-if="item.icon && item.icon.includes(':')"
                         :icon="item.icon"
-                        width="16"
-                        height="16"
+                        width="1em"
+                        height="1em"
                         class="menu-icon menu-icon-iconify"
                       />
                       <!-- anzhiyu 图标 -->
@@ -262,8 +262,8 @@
                       <IconifyIconOnline
                         v-else-if="item.icon && item.icon.includes(':')"
                         :icon="item.icon"
-                        width="16"
-                        height="16"
+                        width="1em"
+                        height="1em"
                         class="menu-icon menu-icon-iconify"
                       />
                       <!-- anzhiyu 图标 -->
@@ -331,9 +331,10 @@ onUnmounted(() => {
 
 const isPostDetailPage = computed(() => route.name === "PostDetail");
 const isMusicPage = computed(() => route.name === "MusicHome");
+const isProductDetailPage = computed(() => route.name === "ProductDetail");
 
 const { isHeaderTransparent, isScrolled, scrollPercent, isFooterVisible } =
-  useHeader(isPostDetailPage.value);
+  useHeader(isPostDetailPage.value || isProductDetailPage.value);
 
 // 立即应用 text-is-white 类名，避免路由切换时的闪烁
 const shouldShowTextWhite = ref(false);
@@ -344,12 +345,13 @@ const updateTextWhite = () => {
   const scrollTop = Math.max(0, window.scrollY);
   const isAtTop = scrollTop === 0;
   shouldShowTextWhite.value =
-    isAtTop && (isPostDetailPage.value || isMusicPage.value);
+    isAtTop &&
+    (isPostDetailPage.value || isMusicPage.value || isProductDetailPage.value);
 };
 
 // 监听路由变化，立即更新类名
 watch(
-  [isPostDetailPage, isMusicPage],
+  [isPostDetailPage, isMusicPage, isProductDetailPage],
   () => {
     // 路由切换时立即检查实际滚动位置并应用类名
     updateTextWhite();
@@ -393,13 +395,13 @@ router.afterEach(() => {
 
 // 监听页面类型变化，更新 meta theme-color
 watch(
-  isPostDetailPage,
-  newValue => {
+  [isPostDetailPage, isProductDetailPage],
+  ([newPostValue, newProductValue]) => {
     const scrollTop = Math.max(0, window.scrollY);
     const isAtTop = scrollTop === 0;
 
     if (isAtTop) {
-      if (newValue) {
+      if (newPostValue) {
         // 文章页顶部：使用文章主色调（如果已加载）
         const articleColor = getCurrentArticlePrimaryColor();
         if (articleColor) {
@@ -408,6 +410,9 @@ watch(
           // 如果没有获取到文章主色，使用背景色作为备用方案
           updateMetaThemeColorDynamic("var(--anzhiyu-background)");
         }
+      } else if (newProductValue) {
+        // 商品页顶部：使用主题色
+        updateMetaThemeColorDynamic("var(--anzhiyu-main)");
       } else {
         // 首页顶部：使用背景色
         updateMetaThemeColorDynamic("var(--anzhiyu-background)");
@@ -629,11 +634,13 @@ const scrollToTop = () => {
           cursor: pointer;
           border-radius: 12px;
           opacity: 0;
+          /* 优化过渡：使用 GPU 加速 + 更流畅的缓动 */
           transition:
-            transform 0.2s ease-out,
-            opacity 0.2s ease-out;
-          transform: translateY(20px) scale(1.1);
-          animation-timing-function: ease-out;
+            transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+            opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+          transform: translateY(10px) translateZ(0);
+          will-change: transform, opacity;
+          backface-visibility: hidden;
 
           &:hover .page-name {
             color: var(--anzhiyu-main);
@@ -771,6 +778,7 @@ const scrollToTop = () => {
               .site-page {
                 display: flex;
                 align-items: center;
+                min-height: 35px;
                 padding: 0.3rem 0.8rem;
                 color: var(--anzhiyu-fontcolor);
                 text-shadow: none;
@@ -786,11 +794,29 @@ const scrollToTop = () => {
                   transform: scale(1);
                 }
 
-                i {
+                i.menu-icon {
                   margin-right: 6px;
                   font-size: 0.9rem;
-                  line-height: 1;
-                  line-height: 35px;
+                }
+
+                .menu-icon-iconify {
+                  display: inline-flex;
+                  flex-shrink: 0;
+                  align-items: center;
+                  justify-content: center;
+                  width: 0.9rem;
+                  height: 0.9rem;
+                  margin-right: 6px;
+
+                  :deep(svg) {
+                    width: 100%;
+                    height: 100%;
+                  }
+                }
+
+                // 当 site-page 包含 Iconify 图标时，整体下移对齐
+                &:has(.menu-icon-iconify) {
+                  transform: translateY(2px);
                 }
               }
             }
@@ -825,13 +851,19 @@ const scrollToTop = () => {
         z-index: 1;
         pointer-events: auto;
         opacity: 1;
-        transform: translateY(-52px) scale(1);
+        /* 优化：减少位移幅度，移除 scale 变化 */
+        transform: translateY(-52px) translateZ(0);
       }
     }
 
     &.is-transparent {
-      background-color: transparent;
+      background-color: var(--anzhiyu-background);
       outline-color: transparent;
+
+      // 文章详情页和音乐页顶部时，导航栏完全透明
+      &.text-is-white {
+        background-color: transparent;
+      }
     }
 
     &.text-is-white {
@@ -928,8 +960,18 @@ const scrollToTop = () => {
 
   .menu-icon-iconify {
     display: inline-flex;
+    flex-shrink: 0;
     align-items: center;
     justify-content: center;
+    width: 14px;
+    height: 14px;
+    font-size: 14px;
+    vertical-align: middle;
+
+    :deep(svg) {
+      width: 100%;
+      height: 100%;
+    }
   }
 }
 

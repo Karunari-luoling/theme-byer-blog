@@ -89,7 +89,11 @@ const formatDate = (dateString: string) => {
           v-for="post in displayPosts"
           :key="post.id"
           class="aside-list-item"
-          :to="`/posts/${post.id}`"
+          :to="
+            post.is_doc || post.doc_series_id
+              ? `/doc/${post.id}`
+              : `/posts/${post.id}`
+          "
           :title="post.title"
         >
           <div class="thumbnail">

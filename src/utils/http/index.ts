@@ -82,6 +82,8 @@ class AnHttp {
       // 创建一个请求函数
       const request = (newAccessToken: string) => {
         config.headers["Authorization"] = formatToken(newAccessToken);
+        // 标记为重试请求，避免请求拦截器再次覆盖token
+        (config as any)._isRetryAfterRefresh = true;
         // 用更新了Token的配置重新发起请求，并resolve这个Promise
         resolve(AnHttp.axiosInstance(config));
       };
@@ -210,6 +212,12 @@ class AnHttp {
         // 为所有其他请求（包括可选Token的接口）附上AccessToken（如果存在）
         // 注意：对于使用 JWTAuthOptional() 的接口（如分享接口），
         // 有 token 就携带（用于识别用户组），无 token 也不会返回 401
+
+        // 如果是刷新token后的重试请求，header已经设置了新token，不要覆盖
+        if ((config as any)._isRetryAfterRefresh) {
+          return config;
+        }
+
         const tokenData = getToken();
         if (tokenData?.accessToken) {
           config.headers["Authorization"] = formatToken(tokenData.accessToken);
@@ -264,6 +272,8 @@ class AnHttp {
               const newAccessToken = await AnHttp.handleRefreshToken();
               // 刷新成功后，使用新Token重新发起当前失败的请求
               config.headers["Authorization"] = formatToken(newAccessToken);
+              // 标记为重试请求，避免请求拦截器再次覆盖token
+              (config as any)._isRetryAfterRefresh = true;
               return AnHttp.axiosInstance(config);
             } catch (refreshError) {
               // 如果`handleRefreshToken`内部发生错误（例如刷新也失败了），则直接抛出

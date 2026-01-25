@@ -381,8 +381,12 @@ export interface OrderListParams {
 export interface AdminOrderInfo {
   id: number;
   order_no: string;
+  order_type: "ARTICLE" | "SHARE" | "PRODUCT" | "MEMBERSHIP"; // 订单类型
   article_id?: string; // 文章公共ID（文章购买）
   share_id?: string; // 分享公共ID（分享购买）
+  product_id?: number; // 商品ID（商品购买）
+  variant_id?: number; // 商品型号ID（商品购买）
+  membership_plan_id?: number; // 会员套餐ID（会员购买）
   user_id: string; // 用户公共ID（如果有）
   user_email: string;
   amount: number; // 金额（元）

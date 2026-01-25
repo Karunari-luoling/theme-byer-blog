@@ -70,6 +70,17 @@ export default [
           title: "主题商城",
           roles: ["1"]
         }
+      },
+      {
+        path: "/admin/knowledge-management",
+        name: "KnowledgeManagement",
+        component: () =>
+          import("@/views/system/knowledge-management/index.vue"),
+        meta: {
+          icon: "ep:chat-dot-round",
+          title: "知识库管理",
+          roles: ["1"]
+        }
       }
     ]
   }

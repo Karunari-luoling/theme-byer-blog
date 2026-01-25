@@ -2,7 +2,7 @@
  * @Description: 路由配置
  * @Author: 安知鱼
  * @Date: 2025-04-08 17:29:06
- * @LastEditTime: 2025-10-08 19:17:38
+ * @LastEditTime: 2026-01-04 17:27:37
  * @LastEditors: 安知鱼
  */
 const Layout = () => import("@/layout/index.vue");
@@ -289,6 +289,19 @@ export default [
         }
       },
       {
+        path: "article-statistics",
+        name: "ArticleStatistics",
+        component: () => import("@/views/post/article-statistics/index.vue"),
+        meta: {
+          title: () => {
+            const configs = getConfig();
+            const appName = configs?.APP_NAME;
+            return `${appName} - 文章统计`;
+          },
+          showLink: false
+        }
+      },
+      {
         path: "about",
         name: "PostAbout",
         component: () => import("@/views/post/about/index.vue"),
@@ -375,6 +388,72 @@ export default [
             const configs = getConfig();
             const appName = configs?.APP_NAME;
             return `${appName} - 分享`;
+          },
+          showLink: false
+        }
+      },
+      {
+        path: "doc/:id",
+        name: "DocDetail",
+        component: () => import("@/views/doc/doc-detail/index.vue"),
+        meta: {
+          title: () => {
+            const configs = getConfig();
+            const appName = configs?.APP_NAME;
+            return `${appName} - 文档`;
+          },
+          showLink: false
+        }
+      },
+      {
+        path: "products",
+        name: "ProductHome",
+        component: () => import("@/views/post/product-home/index.vue"),
+        meta: {
+          title: () => {
+            const configs = getConfig();
+            const appName = configs?.APP_NAME;
+            return `${appName} - 商品中心`;
+          },
+          showLink: false,
+          keepAlive: true
+        }
+      },
+      {
+        path: "products/page/:id",
+        name: "ProductHomePaginated",
+        component: () => import("@/views/post/product-home/index.vue"),
+        meta: {
+          title: () => {
+            const configs = getConfig();
+            const appName = configs?.APP_NAME;
+            return `${appName} - 商品中心`;
+          },
+          showLink: false
+        }
+      },
+      {
+        path: "products/:id",
+        name: "ProductDetail",
+        component: () => import("@/views/post/product-detail/index.vue"),
+        meta: {
+          title: () => {
+            const configs = getConfig();
+            const appName = configs?.APP_NAME;
+            return `${appName} - 商品详情`;
+          },
+          showLink: false
+        }
+      },
+      {
+        path: "notifications",
+        name: "NotificationsPage",
+        component: () => import("@/views/post/notifications/index.vue"),
+        meta: {
+          title: () => {
+            const configs = getConfig();
+            const appName = configs?.APP_NAME;
+            return `${appName} - 消息通知`;
           },
           showLink: false
         }

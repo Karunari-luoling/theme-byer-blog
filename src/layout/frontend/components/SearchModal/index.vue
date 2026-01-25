@@ -50,7 +50,16 @@
               </div>
               <div class="result-details">
                 <div class="result-content">
-                  <div class="result-title" v-html="result.title" />
+                  <div class="result-title-wrapper">
+                    <div class="result-title" v-html="result.title" />
+                    <span
+                      v-if="result.is_doc || result.doc_series_id"
+                      class="result-doc-badge"
+                    >
+                      <i class="anzhiyufont anzhiyu-icon-book" />
+                      文档
+                    </span>
+                  </div>
                   <div class="result-snippet" v-html="result.snippet" />
                 </div>
                 <div class="result-footer">
@@ -119,8 +128,17 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, nextTick } from "vue";
-import { gsap } from "gsap";
 import { useArticleStore } from "@/store/modules/articleStore";
+
+// 动态导入 GSAP，减少首屏加载体积
+let gsapInstance: typeof import("gsap").gsap | null = null;
+const loadGsap = async () => {
+  if (!gsapInstance) {
+    const { gsap } = await import("gsap");
+    gsapInstance = gsap;
+  }
+  return gsapInstance;
+};
 
 interface SearchHit {
   id: string;
@@ -135,6 +153,8 @@ interface SearchHit {
   view_count?: number;
   word_count?: number;
   reading_time?: number;
+  is_doc?: boolean;
+  doc_series_id?: string;
 }
 
 interface SearchResult {
@@ -248,8 +268,13 @@ function changePage(page: number) {
 }
 
 function handleResultClick(result: SearchHit) {
-  const targetId = result.abbrlink || result.id;
-  window.location.href = `/posts/${targetId}`;
+  // 如果是文档类型，跳转到文档详情页
+  if (result.is_doc || result.doc_series_id) {
+    window.location.href = `/doc/${result.id}`;
+  } else {
+    const targetId = result.abbrlink || result.id;
+    window.location.href = `/posts/${targetId}`;
+  }
   closeModal();
 }
 
@@ -266,7 +291,7 @@ function formatDate(dateString: string): string {
   }
 }
 
-function openModal() {
+async function openModal() {
   if (isOpen.value) return;
   isOpen.value = true;
 
@@ -274,6 +299,7 @@ function openModal() {
   const dialog = dialogRef.value;
   if (!mask || !dialog) return;
 
+  const gsap = await loadGsap();
   gsap.set(mask, { display: "block", opacity: 0, pointerEvents: "auto" });
   gsap.set(dialog, { display: "flex", opacity: 0, y: 24, scale: 0.98 });
 
@@ -302,12 +328,13 @@ function openModal() {
     });
 }
 
-function closeModal() {
+async function closeModal() {
   if (!isOpen.value) return;
   const mask = maskRef.value;
   const dialog = dialogRef.value;
   if (!mask || !dialog) return;
 
+  const gsap = await loadGsap();
   const tl = gsap.timeline({ onComplete: onClosed });
   tl.to(dialog, {
     duration: 0.25,
@@ -347,12 +374,15 @@ function onKeydown(e: KeyboardEvent) {
 
 // 移除全局点击监听，改为使用自定义事件或数据属性来精确控制
 
-onMounted(() => {
+onMounted(async () => {
+  // 初始化时设置默认隐藏状态（使用 CSS 而非 GSAP，避免首屏加载 GSAP）
   if (maskRef.value) {
-    gsap.set(maskRef.value, { display: "none", opacity: 0 });
+    maskRef.value.style.display = "none";
+    maskRef.value.style.opacity = "0";
   }
   if (dialogRef.value) {
-    gsap.set(dialogRef.value, { display: "none", opacity: 0 });
+    dialogRef.value.style.display = "none";
+    dialogRef.value.style.opacity = "0";
   }
 
   window.addEventListener("keydown", onKeydown);
@@ -596,9 +626,16 @@ onBeforeUnmount(() => {
   flex-grow: 1;
 }
 
+.result-title-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
 .result-title {
   display: -webkit-box;
-  margin-bottom: 0.5rem;
+  flex: 1;
   overflow: hidden;
   font-size: 1.1rem;
   font-weight: 600;
@@ -607,6 +644,23 @@ onBeforeUnmount(() => {
   -webkit-line-clamp: 1;
   line-clamp: 1;
   -webkit-box-orient: vertical;
+}
+
+.result-doc-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.75rem;
+  color: var(--anzhiyu-theme);
+  white-space: nowrap;
+  background: var(--anzhiyu-theme-op);
+  border-radius: 6px;
+  flex-shrink: 0;
+
+  i {
+    font-size: 0.7rem;
+  }
 }
 
 .result-title:deep(em) {

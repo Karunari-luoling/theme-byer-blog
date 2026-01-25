@@ -73,7 +73,10 @@ const handleExport = async () => {
   const idsToExport = exportAll.value ? [] : props.selectedIds;
 
   if (!exportAll.value && props.selectedIds.length === 0) {
-    ElMessage.warning("请至少选择一条说说进行导出，或选择导出全部");
+    ElMessage.warning({
+      message: "请至少选择一条说说进行导出，或选择导出全部",
+      customClass: "high-z-index-message"
+    });
     return;
   }
 
@@ -95,15 +98,19 @@ const handleExport = async () => {
     document.body.removeChild(link);
     window.URL.revokeObjectURL(url);
 
-    ElMessage.success(
-      exportAll.value
+    ElMessage.success({
+      message: exportAll.value
         ? "成功导出全部说说"
-        : `成功导出 ${props.selectedIds.length} 条说说`
-    );
+        : `成功导出 ${props.selectedIds.length} 条说说`,
+      customClass: "high-z-index-message"
+    });
     dialogVisible.value = false;
   } catch (error: any) {
     console.error("导出失败:", error);
-    ElMessage.error(error.message || "导出说说失败");
+    ElMessage.error({
+      message: error.message || "导出说说失败",
+      customClass: "high-z-index-message"
+    });
   } finally {
     exporting.value = false;
   }
@@ -122,13 +129,19 @@ const beforeUpload: UploadProps["beforeUpload"] = file => {
     file.name.endsWith(".zip");
 
   if (!isAllowed) {
-    ElMessage.error("只支持 .json 和 .zip 格式的文件");
+    ElMessage.error({
+      message: "只支持 .json 和 .zip 格式的文件",
+      customClass: "high-z-index-message"
+    });
     return false;
   }
 
   const isLt50M = file.size / 1024 / 1024 < 50;
   if (!isLt50M) {
-    ElMessage.error("文件大小不能超过 50MB");
+    ElMessage.error({
+      message: "文件大小不能超过 50MB",
+      customClass: "high-z-index-message"
+    });
     return false;
   }
 
@@ -148,13 +161,19 @@ const handleRemove: UploadProps["onRemove"] = () => {
 // 导入说说
 const handleImport = async () => {
   if (uploadFileList.value.length === 0) {
-    ElMessage.warning("请选择要导入的文件");
+    ElMessage.warning({
+      message: "请选择要导入的文件",
+      customClass: "high-z-index-message"
+    });
     return;
   }
 
   const file = uploadFileList.value[0].raw;
   if (!file) {
-    ElMessage.error("无效的文件");
+    ElMessage.error({
+      message: "无效的文件",
+      customClass: "high-z-index-message"
+    });
     return;
   }
 
@@ -190,7 +209,10 @@ const handleImport = async () => {
     });
   } catch (error: any) {
     console.error("导入失败:", error);
-    ElMessage.error(error.message || "导入说说失败");
+    ElMessage.error({
+      message: error.message || "导入说说失败",
+      customClass: "high-z-index-message"
+    });
   } finally {
     importing.value = false;
   }
@@ -315,6 +337,7 @@ const handleClose = () => {
                 <el-select
                   v-model="importOptions.default_status"
                   placeholder="选择状态"
+                  :teleported="false"
                 >
                   <el-option label="发布" :value="1" />
                   <el-option label="草稿" :value="2" />

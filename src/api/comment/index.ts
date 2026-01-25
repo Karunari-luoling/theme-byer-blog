@@ -141,6 +141,27 @@ export const updateAdminComment = (id: string, content: string) => {
 };
 
 /**
+ * @description: [管理员] 更新评论信息（包括昵称、邮箱、网站、内容）
+ */
+export const updateAdminCommentInfo = (
+  id: string,
+  data: {
+    content?: string;
+    nickname?: string;
+    email?: string;
+    website?: string;
+  }
+) => {
+  return http.request<BaseResponse<AdminComment>>(
+    "put",
+    baseUrlApi(`comments/${id}/info`),
+    {
+      data
+    }
+  );
+};
+
+/**
  * @description: [管理员] 批量删除评论
  */
 export const deleteAdminComments = (ids: string[]) => {
@@ -182,5 +203,58 @@ export const getLatestPublicComments = (params?: {
     "get",
     baseUrlApi("public/comments/latest"),
     { params }
+  );
+};
+
+// --- 导入导出相关 API ---
+
+import type {
+  ExportCommentRequest,
+  ImportCommentOptions,
+  ImportCommentResult
+} from "./type";
+
+/**
+ * @description: [管理员] 导出评论为 ZIP 文件
+ * @param {string[]} ids 要导出的评论ID列表，为空则导出所有
+ * @returns {Promise<Blob>} 返回 ZIP 文件 Blob
+ */
+export const exportComments = async (ids: string[] = []): Promise<Blob> => {
+  const response = await http.request<Blob>(
+    "post",
+    baseUrlApi("comments/export"),
+    {
+      data: { ids } as ExportCommentRequest,
+      responseType: "blob"
+    }
+  );
+  return response;
+};
+
+/**
+ * @description: [管理员] 导入评论
+ * @param {File} file 评论数据文件（JSON或ZIP格式）
+ * @param {ImportCommentOptions} options 导入选项
+ * @returns {Promise<BaseResponse<ImportCommentResult>>} 返回导入结果
+ */
+export const importComments = (
+  file: File,
+  options: ImportCommentOptions
+): Promise<BaseResponse<ImportCommentResult>> => {
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("skip_existing", String(options.skip_existing));
+  formData.append("default_status", String(options.default_status));
+  formData.append("keep_create_time", String(options.keep_create_time));
+
+  return http.request<BaseResponse<ImportCommentResult>>(
+    "post",
+    baseUrlApi("comments/import"),
+    {
+      data: formData,
+      headers: {
+        "Content-Type": "multipart/form-data"
+      }
+    }
   );
 };

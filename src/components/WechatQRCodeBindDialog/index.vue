@@ -37,7 +37,11 @@
         </div>
 
         <div class="qrcode-image-wrapper">
-          <img :src="qrcodeData.qrcode_url" alt="微信二维码" class="qrcode-image" />
+          <img
+            :src="qrcodeData.qrcode_url"
+            alt="微信二维码"
+            class="qrcode-image"
+          />
 
           <div v-if="status === 'scanned'" class="scanned-overlay">
             <div class="scanned-content">
@@ -109,7 +113,7 @@ const emit = defineEmits<{
 
 const dialogVisible = computed({
   get: () => props.modelValue,
-  set: (value) => emit("update:modelValue", value)
+  set: value => emit("update:modelValue", value)
 });
 
 const loading = ref(false);
@@ -218,7 +222,7 @@ const handleClose = () => {
 // 监听弹窗打开
 watch(
   () => props.modelValue,
-  (newVal) => {
+  newVal => {
     if (newVal) {
       loadQRCode();
     } else {

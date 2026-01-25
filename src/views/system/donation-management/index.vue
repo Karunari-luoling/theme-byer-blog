@@ -8,6 +8,10 @@
             <p class="subtitle">管理打赏名单，支持显示/隐藏、排序等功能</p>
           </div>
           <div class="header-right">
+            <el-button @click="handleImportExport">
+              <el-icon><FolderOpened /></el-icon>
+              导入导出
+            </el-button>
             <el-button @click="handleViewAboutPage">
               <el-icon><View /></el-icon>
               查看关于页面
@@ -128,14 +132,22 @@
       :mode="editMode"
       @refresh="fetchDonations"
     />
+
+    <!-- 导入导出对话框 -->
+    <import-export-dialog
+      v-model="importExportDialogVisible"
+      :selected-ids="[]"
+      @success="fetchDonations"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
-import { View, Plus } from "@element-plus/icons-vue";
+import { View, Plus, FolderOpened } from "@element-plus/icons-vue";
 import DonationEditDialog from "./components/DonationEditDialog.vue";
+import ImportExportDialog from "./components/ImportExportDialog.vue";
 import {
   listDonationsApi,
   deleteDonationApi,
@@ -169,6 +181,9 @@ const filterForm = reactive({
 const editDialogVisible = ref(false);
 const currentDonation = ref<DonationItem | null>(null);
 const editMode = ref<"create" | "edit">("create");
+
+// 导入导出对话框
+const importExportDialogVisible = ref(false);
 
 // 获取打赏列表
 const fetchDonations = async () => {
@@ -266,6 +281,11 @@ const formatDate = (dateString: string) => {
     hour: "2-digit",
     minute: "2-digit"
   });
+};
+
+// 打开导入导出对话框
+const handleImportExport = () => {
+  importExportDialogVisible.value = true;
 };
 
 onMounted(() => {

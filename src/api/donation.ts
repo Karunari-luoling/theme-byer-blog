@@ -163,3 +163,59 @@ export const getTotalAmountApi = (): Promise<
     baseUrlApi("pro/donations/total")
   );
 };
+
+// ==================== 导入导出 API ====================
+
+/**
+ * 导入选项
+ */
+export interface ImportDonationOptions {
+  skip_existing: boolean; // 跳过已存在的记录
+  default_status: number; // 默认状态 (0=保持原状态, 1=显示, 2=隐藏)
+}
+
+/**
+ * 导入结果
+ */
+export interface ImportDonationResult {
+  total_count: number;
+  success_count: number;
+  skipped_count: number;
+  failed_count: number;
+  errors?: string[];
+}
+
+/**
+ * 导出打赏记录
+ */
+export const exportDonationsApi = (ids?: number[]): Promise<Blob> => {
+  const params = ids && ids.length > 0 ? { ids: ids.join(",") } : {};
+  return http.request<Blob>("get", baseUrlApi("pro/admin/donations/export"), {
+    params,
+    responseType: "blob"
+  });
+};
+
+/**
+ * 导入打赏记录
+ */
+export const importDonationsApi = (
+  file: File,
+  options: ImportDonationOptions
+): Promise<BaseResponse<ImportDonationResult>> => {
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("skip_existing", String(options.skip_existing));
+  formData.append("default_status", String(options.default_status));
+
+  return http.request<BaseResponse<ImportDonationResult>>(
+    "post",
+    baseUrlApi("pro/admin/donations/import"),
+    {
+      data: formData,
+      headers: {
+        "Content-Type": "multipart/form-data"
+      }
+    }
+  );
+};

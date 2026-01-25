@@ -3,9 +3,9 @@
  * @Author: 安知鱼
  */
 
-import dayjs from "dayjs";
+import { formatToChina } from "@/utils/dayjs";
 import { message } from "@/utils/message";
-import { getArticleList, deleteArticle } from "@/api/post";
+import { getArticleList, deleteArticle, batchDeleteArticles } from "@/api/post";
 import type { Article, GetArticleListParams } from "@/api/post/type";
 import {
   approveArticle,
@@ -85,6 +85,12 @@ export function usePostManagement() {
       type: "warning",
       color: "var(--anzhiyu-yellow)"
     },
+    {
+      value: "SCHEDULED",
+      label: "定时发布",
+      type: "primary",
+      color: "var(--anzhiyu-blue)"
+    },
     { value: "ARCHIVED", label: "已归档", type: "info", color: "#909399" }
   ];
 
@@ -118,6 +124,7 @@ export function usePostManagement() {
     if (reviewStatus === ReviewStatus.PENDING) return "warning";
     if (reviewStatus === ReviewStatus.REJECTED) return "danger";
     if (status === "PUBLISHED") return "success";
+    if (status === "SCHEDULED") return "primary";
     if (status === "DRAFT") return "info";
     return "info";
   };
@@ -381,6 +388,27 @@ export function usePostManagement() {
             }
           );
         }
+
+        // 定时发布状态显示计划发布时间
+        if (row.status === "SCHEDULED" && row.scheduled_at) {
+          return h(
+            ElTooltip,
+            {
+              content: `计划发布时间：${formatToChina(row.scheduled_at)}`,
+              placement: "top",
+              showAfter: 300
+            },
+            {
+              default: () =>
+                h(
+                  ElTag,
+                  { type: tagType, size: "small", effect: "light" },
+                  () => statusInfo?.label
+                )
+            }
+          );
+        }
+
         return h(
           ElTag,
           { type: tagType, size: "small", effect: "light" },
@@ -450,7 +478,7 @@ export function usePostManagement() {
                 style:
                   "display: inline-flex; align-items: center; gap: 4px; font-size: 11px; color: var(--anzhiyu-secondtext);"
               },
-              [dayjs(row.created_at).format("YYYY-MM-DD HH:mm")]
+              [formatToChina(row.created_at, "YYYY-MM-DD HH:mm")]
             ),
             h(
               "span",
@@ -458,7 +486,7 @@ export function usePostManagement() {
                 style:
                   "display: inline-flex; align-items: center; gap: 4px; font-size: 11px; color: var(--anzhiyu-secondtext); opacity: 0.7;"
               },
-              [dayjs(row.updated_at).format("YYYY-MM-DD HH:mm")]
+              [formatToChina(row.updated_at, "YYYY-MM-DD HH:mm")]
             )
           ]
         );
@@ -685,6 +713,50 @@ export function usePostManagement() {
     selectedIds.value = [];
   }
 
+  // 批量删除功能
+  const batchDeleting = ref(false);
+
+  async function handleBatchDelete() {
+    if (selectedIds.value.length === 0) {
+      message("请先选择要删除的文章", { type: "warning" });
+      return;
+    }
+
+    try {
+      await ElMessageBox.confirm(
+        `确定要删除选中的 ${selectedIds.value.length} 篇文章吗？此操作不可恢复。`,
+        "批量删除确认",
+        {
+          confirmButtonText: "确定删除",
+          cancelButtonText: "取消",
+          type: "warning"
+        }
+      );
+
+      batchDeleting.value = true;
+      const { data } = await batchDeleteArticles(selectedIds.value);
+
+      if (data.failed_count > 0) {
+        message(
+          `删除完成：成功 ${data.success_count} 篇，失败 ${data.failed_count} 篇`,
+          { type: "warning" }
+        );
+      } else {
+        message(`成功删除 ${data.success_count} 篇文章`, { type: "success" });
+      }
+
+      // 清空选择并刷新列表
+      selectedIds.value = [];
+      onSearch();
+    } catch (error) {
+      if (error !== "cancel") {
+        message("批量删除失败", { type: "error" });
+      }
+    } finally {
+      batchDeleting.value = false;
+    }
+  }
+
   onMounted(() => {
     onSearch();
   });
@@ -707,6 +779,7 @@ export function usePostManagement() {
     showTakedownDialog,
     takedowningArticle,
     takedownReason,
+    batchDeleting,
     onSizeChange,
     onCurrentChange,
     onSearch,
@@ -724,6 +797,7 @@ export function usePostManagement() {
     isPendingReview,
     handleSelectionChange,
     handleOpenImportExport,
-    handleImportExportSuccess
+    handleImportExportSuccess,
+    handleBatchDelete
   };
 }

@@ -37,9 +37,11 @@ export default function customFoldingPlugin(md: MarkdownIt): void {
     // 记录起始行的缩进量
     const startIndent = state.tShift[startLine];
 
-    // 寻找结束标记 :::
+    // 寻找结束标记 ::: （需要考虑嵌套情况）
     let nextLine = startLine + 1;
     let endLineFound = false;
+    let nestingLevel = 1; // 从 1 开始，表示当前 folding 块
+
     while (nextLine < endLine) {
       // 如果遇到空行，继续
       if (state.isEmpty(nextLine)) {
@@ -57,9 +59,21 @@ export default function customFoldingPlugin(md: MarkdownIt): void {
       }
 
       const lineText = state.src.slice(pos, max).trim();
-      if (lineText === startMarker) {
-        endLineFound = true;
-        break;
+
+      // 检查是否是新的 ::: 块开始（gallery, tabs, hidden, folding 等）
+      if (
+        lineText.startsWith(startMarker) &&
+        lineText.length > startMarker.length
+      ) {
+        // 这是一个新的嵌套块开始
+        nestingLevel++;
+      } else if (lineText === startMarker) {
+        // 这是一个块的结束标记
+        nestingLevel--;
+        if (nestingLevel === 0) {
+          endLineFound = true;
+          break;
+        }
       }
       nextLine++;
     }
@@ -86,12 +100,25 @@ export default function customFoldingPlugin(md: MarkdownIt): void {
       }
     });
 
-    // --- 提取区块内容（处理缩进）---
+    // --- 提取区块内容（保留相对缩进）---
+    // 修复：只移除与块标记同级的基础缩进，保留代码块内的额外缩进
     let content = "";
     for (let i = startLine + 1; i < nextLine; i++) {
-      const lineStart = state.bMarks[i] + state.tShift[i];
+      // 获取整行的原始内容（包含所有缩进）
+      const lineStart = state.bMarks[i];
       const lineEnd = state.eMarks[i];
-      const lineContent = state.src.slice(lineStart, lineEnd);
+      const fullLine = state.src.slice(lineStart, lineEnd);
+
+      // 计算当前行的实际缩进量（空格数）
+      let lineIndent = 0;
+      while (lineIndent < fullLine.length && fullLine[lineIndent] === " ") {
+        lineIndent++;
+      }
+
+      // 移除基础缩进（与块标记同级），保留相对缩进
+      const indentToRemove = Math.min(lineIndent, startIndent);
+      const lineContent = fullLine.slice(indentToRemove);
+
       content += lineContent + "\n";
     }
 

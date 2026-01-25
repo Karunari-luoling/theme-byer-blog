@@ -397,7 +397,7 @@ export const createDirectLinksApi = (
   const requestData: CreateDirectLinksRequest = {
     file_ids: fileIds
   };
-  // PRO 版使用增强版直链接口，支持米游社同步优先
+  // PRO 版使用增强版直链接口
   return http.post<CreateDirectLinksResponse, CreateDirectLinksRequest>(
     baseUrlApi("pro/direct-links"),
     requestData

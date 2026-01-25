@@ -67,9 +67,6 @@ export interface PageOneImageConfig {
  */
 export interface PageSittingInfo {
   enableExternalLinkWarning: boolean;
-  albumApiURL: string;
-  defaultThumbParam?: string;
-  defaultBigParam?: string;
   customHeaderHTML: string;
   customFooterHTML: string;
   customCSS: string;
@@ -166,6 +163,7 @@ export interface PostSettingsInfo {
     defaultCover: string;
     doubleColumn: boolean;
     pageSize: number;
+    enablePrimaryColorTag: boolean; // 是否启用分类主色调标签样式
   };
   expirationTime: number | null;
   page404: {
@@ -186,6 +184,7 @@ export interface PostSettingsInfo {
   };
   codeBlock: {
     codeMaxLines: number;
+    macStyle: boolean;
   };
   copy: {
     enable: boolean; // 是否允许复制文章内容
@@ -194,7 +193,18 @@ export interface PostSettingsInfo {
     copyrightReprint: string; // 转载文章版权模板
   };
   toc: {
-    hashUpdateMode: string; // 目录滚动时URL Hash更新模式: replace(替换不产生历史), none(不更新)
+    hashUpdateMode: string; // 目录滚动是否更新URL Hash: replace(启用), none(禁用)
+  };
+  waves: {
+    enable: boolean; // 是否显示文章页面波浪区域
+  };
+  copyright: {
+    originalTemplate: string; // 原创文章版权声明模板
+    reprintTemplateWithUrl: string; // 转载文章版权声明模板（有原文链接）
+    reprintTemplateWithoutUrl: string; // 转载文章版权声明模板（无原文链接）
+    showRewardButton?: boolean; // 是否显示打赏按钮（全局）
+    showShareButton?: boolean; // 是否显示分享按钮（全局）
+    showSubscribeButton?: boolean; // 是否显示订阅按钮（全局）
   };
   cdn: {
     enable: boolean;
@@ -221,6 +231,14 @@ export interface PostSettingsInfo {
     mailTemplateApproved: string; // 审核通过邮件模板
     mailSubjectRejected: string; // 审核拒绝邮件主题
     mailTemplateRejected: string; // 审核拒绝邮件模板
+  };
+  subscribe?: {
+    enable: boolean; // 是否启用订阅功能
+    buttonText: string; // 订阅按钮文案
+    dialogTitle: string; // 订阅弹窗标题
+    dialogDesc: string; // 订阅弹窗描述
+    mailSubject: string; // 订阅邮件主题
+    mailTemplate: string; // 订阅邮件模板
   };
 }
 
@@ -380,6 +398,10 @@ export interface HomePageSettingsInfo {
   footerBarAuthorLink: string;
   footerBarCCLink: string;
 
+  // Uptime Kuma 状态监控配置
+  footerUptimeKumaEnable: boolean;
+  footerUptimeKumaPageURL: string;
+
   navTravel: boolean;
   navClock: boolean;
   homeTop: HomeTopInfo;
@@ -393,22 +415,30 @@ export interface HomePageSettingsInfo {
   footerBarLinkList: FooterBarLinkItem[];
   menu: MainMenuItem[];
   navMenuItems: NavMenuGroup[];
-  music?: {
-    player?: {
-      enable?: boolean;
-      playlist_id?: string;
-      custom_playlist?: string;
-    };
-    api?: {
-      base_url?: string;
-    };
-    vinyl?: {
-      background?: string;
-      outer?: string;
-      inner?: string;
-      needle?: string;
-      groove?: string;
-    };
+}
+
+/**
+ * @description: 音乐页面配置接口
+ */
+export interface MusicPageSettingsInfo {
+  enable: boolean;
+  capsule?: {
+    playlist_id?: string;
+    custom_playlist?: string;
+  };
+  page?: {
+    playlist_id?: string;
+    custom_playlist?: string;
+  };
+  api?: {
+    base_url?: string;
+  };
+  vinyl?: {
+    background?: string;
+    outer?: string;
+    inner?: string;
+    needle?: string;
+    groove?: string;
   };
 }
 
@@ -419,6 +449,16 @@ export interface CustomSidebarBlock {
   title: string; // 块标题（可选，为空时不显示标题）
   content: string; // 块内容（HTML代码）
   showInPost: boolean; // 是否在文章页显示
+}
+
+/**
+ * @description: 文档模式侧边栏链接项类型
+ */
+export interface DocSidebarLinkItem {
+  title: string; // 链接标题（如：博客、文档）
+  link: string; // 链接地址
+  icon: string; // 图标类名（支持 Iconify 格式）
+  external: boolean; // 是否为外部链接（显示外链图标）
 }
 
 /**
@@ -435,6 +475,7 @@ export interface SidebarPageSettingsInfo {
   wechatFace: string;
   wechatBackFace: string;
   wechatBlurredBackground: string;
+  wechatLink: string;
   tagsEnable: boolean;
   tagsHighlight: string[];
   siteInfoTotalPostCount: number;
@@ -453,6 +494,7 @@ export interface SidebarPageSettingsInfo {
   weatherRectangle: string;
   customSidebarBlocks: CustomSidebarBlock[]; // 自定义侧边栏块数组（0-3个）
   tocCollapseMode: boolean;
+  docSidebarLinks: DocSidebarLinkItem[]; // 文档模式侧边栏链接列表
 }
 
 /**
@@ -671,6 +713,7 @@ export interface AboutPageSettingsInfo {
   enableLikeTech?: boolean;
   enableMusic?: boolean;
   enableCustomCode?: boolean;
+  enableComment?: boolean;
 }
 
 export interface RecentCommentsSettingsInfo {
@@ -680,6 +723,32 @@ export interface RecentCommentsSettingsInfo {
     description: string;
     tip: string;
   };
+}
+
+/**
+ * @description: 相册页配置表单接口
+ */
+export interface AlbumPageSettingsInfo {
+  banner: {
+    background: string;
+    title: string;
+    description: string;
+    tip: string;
+  };
+  layoutMode: "grid" | "waterfall";
+  waterfall: {
+    columnCount: {
+      large: number; // >= 1200px
+      medium: number; // >= 768px
+      small: number; // < 768px
+    };
+    gap: number; // 像素
+  };
+  apiURL: string;
+  defaultThumbParam: string;
+  defaultBigParam: string;
+  pageSize: number;
+  enableComment: boolean;
 }
 
 /**
@@ -794,6 +863,41 @@ export interface SeoSettingsInfo {
   retryInterval: string;
 }
 
+/**
+ * @description: Cloudflare Turnstile 人机验证配置表单接口
+ */
+export interface TurnstileSettingsInfo {
+  enable: boolean; // 是否启用 Turnstile 人机验证（已废弃，使用 captcha.provider）
+  siteKey: string; // Site Key（公钥，前端使用）
+  secretKey: string; // Secret Key（私钥，后端验证使用）
+}
+
+/**
+ * @description: 极验 GeeTest 4.0 配置接口
+ */
+export interface GeetestSettingsInfo {
+  captchaId: string; // 验证 ID（公钥，前端使用）
+  captchaKey: string; // 验证 Key（私钥，后端验证使用）
+}
+
+/**
+ * @description: 系统图形验证码配置接口
+ */
+export interface ImageCaptchaSettingsInfo {
+  length: number; // 验证码长度
+  expire: number; // 过期时间（秒）
+}
+
+/**
+ * @description: 统一人机验证配置表单接口
+ */
+export interface CaptchaSettingsInfo {
+  provider: "none" | "turnstile" | "geetest" | "image"; // 验证方式
+  turnstile: TurnstileSettingsInfo;
+  geetest: GeetestSettingsInfo;
+  imageCaptcha: ImageCaptchaSettingsInfo;
+}
+
 export interface FrontDeskSettings {
   home: HomePageSettingsInfo;
   sidebar: SidebarPageSettingsInfo;
@@ -807,6 +911,9 @@ export interface FrontDeskSettings {
   moments: MomentsSettingsInfo;
   oauth: OAuthSettingsInfo;
   seo: SeoSettingsInfo;
+  album: AlbumPageSettingsInfo;
+  turnstile: TurnstileSettingsInfo;
+  captcha: CaptchaSettingsInfo;
 }
 
 /**

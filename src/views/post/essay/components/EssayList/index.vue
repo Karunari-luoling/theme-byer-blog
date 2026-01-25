@@ -242,8 +242,10 @@ const itemRefs = ref<(HTMLElement | null)[]>([]);
 const itemPositions = ref<Record<number, any>>({});
 const waterfallHeight = ref(0);
 const columnCount = ref(3); // 默认3列
+const prevColumnCount = ref(3); // 上一次的列数，用于检测变化
 const gap = 16; // 间隙
 const layoutReady = ref(false); // 布局是否已稳定
+const resizeObserver = ref<ResizeObserver | null>(null); // ResizeObserver 实例
 
 // 设置 item ref
 const setItemRef = (el: any, index: number) => {
@@ -253,7 +255,7 @@ const setItemRef = (el: any, index: number) => {
 };
 
 // 计算瀑布流布局
-const calculateWaterfallLayout = () => {
+const calculateWaterfallLayout = (forceReset = false) => {
   console.log("[瀑布流] 开始计算布局");
 
   if (!waterfallRef.value || itemRefs.value.length === 0) {
@@ -265,13 +267,30 @@ const calculateWaterfallLayout = () => {
   console.log("[瀑布流] 容器宽度:", containerWidth);
 
   // 根据容器宽度计算列数：大屏3列，中屏2列，小屏1列
+  let newColumnCount = 3;
   if (containerWidth >= 1200) {
-    columnCount.value = 3;
+    newColumnCount = 3;
   } else if (containerWidth >= 768) {
-    columnCount.value = 2;
+    newColumnCount = 2;
   } else {
-    columnCount.value = 1;
+    newColumnCount = 1;
   }
+
+  // 检测列数是否变化
+  const columnCountChanged = newColumnCount !== prevColumnCount.value;
+  if (columnCountChanged || forceReset) {
+    console.log(
+      "[瀑布流] 列数变化:",
+      prevColumnCount.value,
+      "->",
+      newColumnCount
+    );
+    // 列数变化时，先清空位置信息，避免堆叠
+    itemPositions.value = {};
+  }
+
+  prevColumnCount.value = newColumnCount;
+  columnCount.value = newColumnCount;
 
   console.log(
     "[瀑布流] 列数:",
@@ -285,37 +304,54 @@ const calculateWaterfallLayout = () => {
   const columnHeights = new Array(columnCount.value).fill(0);
   const columnsUsed = new Set<number>(); // 记录哪些列被使用了
 
+  // 批量读取高度，减少重排次数
+  const validItemsWithIndex: Array<{ item: HTMLElement; index: number }> = [];
   itemRefs.value.forEach((item, index) => {
-    if (!item) return;
+    if (item) {
+      validItemsWithIndex.push({ item, index });
+    }
+  });
 
-    // 强制重绘以获取准确的高度
-    void item.offsetHeight;
+  if (validItemsWithIndex.length === 0) return;
 
+  // 批量读取高度
+  const heights: number[] = [];
+  validItemsWithIndex.forEach(({ item }) => {
+    heights.push(item.getBoundingClientRect().height);
+  });
+
+  // 批量计算位置
+  const newPositions: Record<number, any> = {};
+  validItemsWithIndex.forEach(({ index }, arrayIndex) => {
     // 找到最短的列
     const minHeight = Math.min(...columnHeights);
     const minColumnIndex = columnHeights.indexOf(minHeight);
-    columnsUsed.add(minColumnIndex); // 标记该列被使用
+    columnsUsed.add(minColumnIndex);
 
     // 计算位置
     const left = minColumnIndex * (itemWidth + gap);
     const top = columnHeights[minColumnIndex];
 
     // 设置位置
-    itemPositions.value[index] = {
+    newPositions[index] = {
       position: "absolute",
       width: `${itemWidth}px`,
       left: `${left}px`,
-      top: `${top}px`
+      top: `${top}px`,
+      transition: "left 0.3s ease, top 0.3s ease, width 0.3s ease"
     };
 
-    // 获取实际高度（包括所有内部内容）
-    const itemHeight = item.getBoundingClientRect().height;
+    // 使用缓存的高度
+    const itemHeight = heights[arrayIndex];
     console.log(
       `[瀑布流] Item ${index}: height=${itemHeight}, column=${minColumnIndex}, top=${top}`
     );
 
     columnHeights[minColumnIndex] = top + itemHeight + gap;
   });
+
+  // 一次性更新所有位置
+  itemPositions.value = newPositions;
 
   // 设置容器高度：只取被使用的列中的最大高度
   const usedColumnHeights = Array.from(columnsUsed).map(i => columnHeights[i]);
@@ -327,20 +363,6 @@ const calculateWaterfallLayout = () => {
   console.log("[瀑布流] 使用的列:", Array.from(columnsUsed));
   console.log("[瀑布流] 使用列的高度:", usedColumnHeights);
   console.log("[瀑布流] 最终容器高度:", waterfallHeight.value);
-
-  // 验证高度是否真的应用到了 DOM
-  nextTick(() => {
-    if (waterfallRef.value) {
-      const actualHeight = waterfallRef.value.style.height;
-      const computedHeight = waterfallRef.value.offsetHeight;
-      console.log(
-        "[瀑布流] 验证 - style.height:",
-        actualHeight,
-        "offsetHeight:",
-        computedHeight
-      );
-    }
-  });
 };
 
 // 初始化 Fancybox
@@ -507,12 +529,17 @@ const fetchEssays = async (page = 1) => {
 
     // 计算布局和初始化 Fancybox
     console.log("[加载] 开始计算布局");
-    calculateWaterfallLayout();
+    calculateWaterfallLayout(true); // forceReset = true
     initFancybox();
 
     // 短暂延迟后再次计算，确保布局准确
     await nextTick();
     calculateWaterfallLayout();
+
+    // 初始化 ResizeObserver（首次加载时）
+    if (!resizeObserver.value) {
+      initResizeObserver();
+    }
 
     // 立即显示内容
     console.log("[加载] 布局计算完成，显示内容");
@@ -629,35 +656,60 @@ const handleMusicLoaded = () => {
   }, 50);
 };
 
-// 防抖函数
+// 防抖函数 - 使用 ResizeObserver 替代 window.resize
 let resizeTimer: NodeJS.Timeout;
-const handleResize = () => {
-  console.log("[Resize] 窗口大小改变");
+let lastContainerWidth = 0;
+
+const handleContainerResize = (entries: ResizeObserverEntry[]) => {
+  const entry = entries[0];
+  if (!entry) return;
+
+  const newWidth = entry.contentRect.width;
+
+  // 如果宽度没有变化，不需要重新计算
+  if (Math.abs(newWidth - lastContainerWidth) < 1) return;
+
+  console.log("[Resize] 容器宽度变化:", lastContainerWidth, "->", newWidth);
+  lastContainerWidth = newWidth;
+
+  // 使用 requestAnimationFrame 代替 setTimeout，更流畅
   clearTimeout(resizeTimer);
-  resizeTimer = setTimeout(async () => {
-    // 只有在布局就绪后才响应 resize
+  resizeTimer = setTimeout(() => {
     if (layoutReady.value) {
       console.log("[Resize] 开始重新计算布局");
-      await waitForImages();
-      calculateWaterfallLayout();
-    } else {
-      console.log("[Resize] 布局计算中，等待完成后再重新计算");
-      await waitForImages();
       calculateWaterfallLayout();
     }
-  }, 200);
+  }, 50); // 减少到 50ms，更快响应
+};
+
+// 初始化 ResizeObserver
+const initResizeObserver = () => {
+  if (!waterfallRef.value) return;
+
+  // 清理旧的 observer
+  if (resizeObserver.value) {
+    resizeObserver.value.disconnect();
+  }
+
+  resizeObserver.value = new ResizeObserver(handleContainerResize);
+  resizeObserver.value.observe(waterfallRef.value);
+  lastContainerWidth = waterfallRef.value.offsetWidth;
+  console.log("[ResizeObserver] 初始化完成，初始宽度:", lastContainerWidth);
 };
 
 onMounted(() => {
   console.log("[生命周期] 组件已挂载");
   fetchEssays();
-  window.addEventListener("resize", handleResize);
 });
 
 // 清理
 onBeforeUnmount(() => {
   Fancybox.destroy();
-  window.removeEventListener("resize", handleResize);
+  // 清理 ResizeObserver
+  if (resizeObserver.value) {
+    resizeObserver.value.disconnect();
+    resizeObserver.value = null;
+  }
   if (resizeTimer) {
     clearTimeout(resizeTimer);
   }
@@ -745,6 +797,7 @@ onBeforeUnmount(() => {
     padding: 0;
     margin: 0;
     list-style: none;
+    transition: height 0.3s ease;
   }
 }
 

@@ -123,6 +123,7 @@ const whiteList = [
   "/music",
   "/login/reset",
   "/posts/",
+  "/doc/",
   "/tags",
   "/tags/",
   "/tags/",
@@ -142,7 +143,10 @@ const whiteList = [
   "/update",
   "/callback",
   "/share",
-  "/external-link-warning"
+  "/external-link-warning",
+  "/products",
+  "/products/",
+  "/article-statistics"
 ];
 
 const { VITE_HIDE_HOME } = import.meta.env;
@@ -158,10 +162,8 @@ router.beforeEach(async (to: ToRouteType, _from, next) => {
     isAdminRoute(to.path) &&
     _from.path !== to.path;
 
-  // 后台页面切换使用即时 loading，前台页面使用延迟 loading
-  if (isAdminToAdmin) {
-    loadingStore.startLoadingImmediate();
-  } else {
+  // 后台页面切换不显示 loading，前台页面使用延迟 loading
+  if (!isAdminToAdmin) {
     loadingStore.startLoading();
   }
 

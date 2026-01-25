@@ -68,10 +68,26 @@
             class="back-menu-item"
             @click="item.target === '_self' ? handleInternalLinkClick() : null"
           >
+            <!-- 图片 URL -->
             <img
-              :alt="`${item.name}图标`"
+              v-if="isImageUrl(item.icon)"
+              alt=""
               :src="item.icon"
               class="back-menu-item-icon"
+            />
+            <!-- Iconify 图标 -->
+            <IconifyIconOnline
+              v-else-if="isIconifyIcon(item.icon)"
+              :icon="item.icon"
+              width="24"
+              height="24"
+              class="back-menu-item-icon back-menu-item-icon-iconify"
+            />
+            <!-- anzhiyu 图标 -->
+            <i
+              v-else-if="item.icon"
+              :class="['anzhiyufont', item.icon]"
+              class="back-menu-item-icon back-menu-item-icon-font"
             />
             <span class="back-menu-item-text">{{ item.name }}</span>
           </a>
@@ -120,6 +136,16 @@
                 <i :class="['anzhiyufont', child.icon]" />
                 <span>{{ child.name }}</span>
               </a>
+              <!-- 后端渲染的页面（如 .xml, .json 等）使用原生跳转 -->
+              <a
+                v-else-if="isBackendRenderedPath(child.href)"
+                :href="child.href"
+                class="menu-group-item"
+                @click="handleInternalLinkClick"
+              >
+                <i :class="['anzhiyufont', child.icon]" />
+                <span>{{ child.name }}</span>
+              </a>
               <router-link
                 v-else
                 :to="child.href"
@@ -162,6 +188,16 @@
               target="_blank"
               rel="noopener noreferrer"
               class="menu-group-item"
+            >
+              <i :class="['anzhiyufont', menu.icon]" />
+              <span>{{ menu.name }}</span>
+            </a>
+            <!-- 后端渲染的页面（如 .xml, .json 等）使用原生跳转 -->
+            <a
+              v-else-if="isBackendRenderedPath(menu.href)"
+              :href="menu.href"
+              class="menu-group-item"
+              @click="handleInternalLinkClick"
             >
               <i :class="['anzhiyufont', menu.icon]" />
               <span>{{ menu.name }}</span>
@@ -219,6 +255,17 @@ import { useArticleStore } from "@/store/modules/articleStore";
 import { useCommentStore } from "@/store/modules/commentStore";
 import { useSiteConfigStore } from "@/store/modules/siteConfig";
 import { useDataThemeChange } from "@/layout/hooks/useDataThemeChange";
+import { IconifyIconOnline } from "@/components/ReIcon";
+
+// 判断是否为图片 URL
+const isImageUrl = (icon: string) => {
+  return icon && (icon.startsWith("http://") || icon.startsWith("https://"));
+};
+
+// 判断是否为 Iconify 图标（包含 :）
+const isIconifyIcon = (icon: string) => {
+  return icon && icon.includes(":");
+};
 
 defineOptions({
   name: "MobileMenu"
@@ -505,6 +552,16 @@ const handleTreasureLinkClick = () => {
 const switchDarkMode = () => {
   const newTheme = dataTheme.value ? "light" : "dark";
   dataThemeChange(newTheme);
+};
+
+// 后端渲染的页面路径（不应使用 Vue Router 跳转）
+const BACKEND_RENDERED_EXTENSIONS = [".xml", ".json", ".txt", ".rss"];
+
+// 判断是否为后端渲染的页面（如 sitemap.xml, atom.xml, rss.xml 等）
+const isBackendRenderedPath = (link: string) => {
+  if (!link) return false;
+  const lowerLink = link.toLowerCase();
+  return BACKEND_RENDERED_EXTENSIONS.some(ext => lowerLink.endsWith(ext));
 };
 
 // 处理内部链接点击，关闭侧边栏

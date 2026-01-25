@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, type PropType } from "vue";
+import AIPodcastPlayer from "@/components/AIPodcastPlayer/index.vue";
 
 defineOptions({
   name: "AiSummary"
@@ -10,6 +11,27 @@ const props = defineProps({
     type: Array as PropType<string[]>,
     required: true,
     default: () => []
+  },
+  // AI 播客相关 props
+  articleId: {
+    type: String,
+    default: ""
+  },
+  articleTitle: {
+    type: String,
+    default: ""
+  },
+  contentHtml: {
+    type: String,
+    default: ""
+  },
+  primaryColor: {
+    type: String,
+    default: ""
+  },
+  enableAIPodcast: {
+    type: Boolean,
+    default: false
   }
 });
 
@@ -58,6 +80,17 @@ const refreshSummary = () => {
       <!-- <div id="ai-tag">AnZhiYu GPT</div> -->
     </div>
     <div class="ai-explanation" v-html="displayedSummary" />
+
+    <!-- AI 播客播放器 - 内嵌在简介板块中 -->
+    <AIPodcastPlayer
+      v-if="articleId && enableAIPodcast"
+      :article-id="articleId"
+      :article-title="articleTitle"
+      :content-html="contentHtml"
+      :primary-color="primaryColor"
+      :enable-a-i-podcast="enableAIPodcast"
+      :inline-mode="true"
+    />
   </div>
 </template>
 

@@ -583,17 +583,23 @@ onMounted(() => {
             <span class="timestamp">{{ formattedDate }}</span>
           </div>
           <div class="comment-actions">
-            <button
-              class="action-btn"
-              :class="{ 'is-liked': isLiked }"
-              title="点赞"
-              @click="handleLike"
+            <el-tooltip
+              :content="isLiked ? '取消点赞' : '点赞'"
+              placement="top"
+              :show-arrow="false"
             >
-              <IconLike />
-              <span v-if="comment.like_count > 0" class="like-count">{{
-                comment.like_count
-              }}</span>
-            </button>
+              <button
+                class="action-btn"
+                :class="{ 'is-liked': isLiked }"
+                :title="isLiked ? '取消点赞' : '点赞'"
+                @click="handleLike"
+              >
+                <IconLike />
+                <span v-if="comment.like_count > 0" class="like-count">{{
+                  comment.like_count
+                }}</span>
+              </button>
+            </el-tooltip>
             <el-tooltip
               :content="comment.is_anonymous ? '匿名评论无法回复' : '回复'"
               placement="top"
@@ -674,7 +680,12 @@ onMounted(() => {
     <div
       v-if="isDev"
       class="debug-info"
-      style="margin-top: 8px; margin-left: 56px; font-size: 12px; color: #999"
+      :style="{
+        marginTop: '8px',
+        marginLeft: 'calc(40px + 0.5rem)',
+        fontSize: '12px',
+        color: '#999'
+      }"
     >
       调试: total_children={{ comment.total_children }}, children.length={{
         comment.children?.length || 0
@@ -923,24 +934,24 @@ onMounted(() => {
   flex-direction: column;
   padding-top: 1rem;
   margin-top: 1rem;
-  margin-left: 56px;
+  margin-left: calc(40px + 0.5rem); // 与父评论内容区域左边缘对齐
 }
 
 :deep(.reply-item-container) {
   padding: 1.25rem;
   padding-right: 0;
-  padding-left: calc(40px + 0.5rem);
+  padding-left: 0;
   border-top: var(--style-border-dashed);
 }
 
 .reply-form-wrapper {
   margin-top: 1rem;
-  margin-left: 56px;
+  margin-left: calc(40px + 0.5rem);
 }
 
 .load-more-children-wrapper {
   margin-top: 1rem;
-  margin-left: 56px;
+  margin-left: calc(40px + 0.5rem);
   text-align: center;
 }
 

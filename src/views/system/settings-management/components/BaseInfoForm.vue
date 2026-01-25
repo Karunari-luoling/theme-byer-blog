@@ -1,16 +1,4 @@
 <template>
-  <div class="base-info-header">
-    <h1>基本信息</h1>
-    <div class="config-actions">
-      <el-button type="primary" :icon="Upload" @click="handleExportConfig">
-        导出配置
-      </el-button>
-      <el-button type="success" :icon="Download" @click="handleImportConfig">
-        导入配置
-      </el-button>
-    </div>
-  </div>
-
   <el-form-item label="站点名称">
     <el-input v-model="formData.siteName" placeholder="请输入站点名称" />
     <div class="form-item-help">站点的名称。</div>
@@ -98,7 +86,7 @@
     <div>
       <el-input
         v-model="formData.gravatarURL"
-        placeholder="例如：https://cdn.sep.cc/"
+        placeholder="例如：https://cravatar.cn/"
       />
       <div class="form-item-help">
         Gravatar 头像服务器地址，用于生成用户头像。请确保该地址可正常访问。
@@ -130,9 +118,14 @@
       <el-radio-group v-model="formData.defaultThemeMode">
         <el-radio value="light">亮色模式</el-radio>
         <el-radio value="dark">暗色模式</el-radio>
+        <el-radio value="auto">早晚自动切换</el-radio>
       </el-radio-group>
       <div class="form-item-help">
-        设置新访问者进入网站时默认使用的主题模式。用户可以在访问后自行切换主题。
+        设置新访问者进入网站时默认使用的主题模式。<br />
+        <strong>亮色/暗色模式</strong>：固定使用选择的主题。<br />
+        <strong>早晚自动切换</strong
+        >：早8点至晚8点使用亮色模式，其他时间使用暗色模式。<br />
+        用户可以在访问后自行切换主题。
       </div>
     </div>
   </el-form-item>
@@ -143,11 +136,8 @@ import { computed, onMounted, ref, nextTick } from "vue";
 import { useRoute } from "vue-router";
 import type { SiteInfo } from "../type";
 import type { ElInput, FormItemInstance } from "element-plus";
-// [NEW] 引入 store 和 ElMessageBox
 import { useSiteConfigStore } from "@/store/modules/siteConfig";
-import { ElMessageBox, ElMessage } from "element-plus";
-import { Upload, Download } from "@element-plus/icons-vue";
-import { exportConfig, importConfig } from "@/api/config";
+import { ElMessageBox } from "element-plus";
 
 const props = defineProps<{ modelValue: SiteInfo }>();
 const emit = defineEmits(["update:modelValue"]);
@@ -222,98 +212,9 @@ onMounted(() => {
   // 当组件挂载时，执行检查
   checkAndFocusUrl();
 });
-
-// 导出配置
-const handleExportConfig = async () => {
-  try {
-    ElMessage.info("正在导出配置数据...");
-    const response = await exportConfig();
-
-    // 创建下载链接
-    const blob = new Blob([response], { type: "application/json" });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `anheyu-settings-${new Date().getTime()}.json`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
-
-    ElMessage.success("配置数据导出成功");
-  } catch (error: any) {
-    console.error("导出配置失败:", error);
-    ElMessage.error(`导出配置失败: ${error.message || "未知错误"}`);
-  }
-};
-
-// 导入配置
-const handleImportConfig = () => {
-  ElMessageBox.confirm(
-    "导入新配置将会覆盖数据库中的配置数据，此操作会立即生效。确定要导入配置吗？",
-    "导入配置确认",
-    {
-      confirmButtonText: "确定导入",
-      cancelButtonText: "取消",
-      type: "warning"
-    }
-  )
-    .then(() => {
-      // 创建文件选择器
-      const input = document.createElement("input");
-      input.type = "file";
-      input.accept = ".json";
-      input.onchange = async (e: Event) => {
-        const target = e.target as HTMLInputElement;
-        const file = target.files?.[0];
-        if (!file) return;
-
-        // 验证文件类型
-        if (!file.name.endsWith(".json")) {
-          ElMessage.error("请选择 .json 格式的配置文件");
-          return;
-        }
-
-        try {
-          ElMessage.info("正在导入配置数据...");
-          await importConfig(file);
-          ElMessage.success("配置数据导入成功！请刷新页面查看最新配置");
-          // 3秒后刷新页面
-          setTimeout(() => {
-            window.location.reload();
-          }, 3000);
-        } catch (error: any) {
-          console.error("导入配置失败:", error);
-          ElMessage.error(
-            `导入配置失败: ${error.response?.data?.message || error.message || "未知错误"}`
-          );
-        }
-      };
-      input.click();
-    })
-    .catch(() => {
-      // 用户取消
-    });
-};
 </script>
 
 <style scoped lang="scss">
-.base-info-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
-
-  h1 {
-    margin: 0;
-  }
-
-  .config-actions {
-    display: flex;
-    gap: 12px;
-  }
-}
-
 .el-form-item {
   margin-bottom: 24px;
   transition: background-color 0.5s ease;

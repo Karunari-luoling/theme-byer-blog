@@ -4,7 +4,14 @@ import type { Article } from "@/api/post/type";
 import { useSiteConfigStore } from "@/store/modules/siteConfig";
 import HandHeartIcon from "@iconify-icons/ri/hand-heart-fill";
 import RssIcon from "@iconify-icons/ri/plant-fill";
+import ShareIcon from "@iconify-icons/ri/share-box-fill";
+import WeiboIcon from "@iconify-icons/ri/weibo-fill";
+import QQIcon from "@iconify-icons/ri/qq-fill";
 import { useRouter } from "vue-router";
+import { ElMessage } from "element-plus";
+import AnDialog from "@/components/AnDialog/index.vue";
+import { useCopyToClipboard } from "@pureadmin/utils";
+import { generatePoster, downloadPoster } from "@/utils/posterGenerator";
 
 const props = defineProps({
   article: {
@@ -21,19 +28,58 @@ const router = useRouter();
 const siteConfigStore = useSiteConfigStore();
 const siteConfig = siteConfigStore.getSiteConfig;
 const showRewardPanel = ref(false);
+const isGeneratingPoster = ref(false);
+const showPosterDialog = ref(false);
+const posterDataUrl = ref<string>("");
+const { update: copyToClipboard } = useCopyToClipboard();
 
-// 获取文章的实际作者信息（优先使用文章发布者的信息，否则使用站点所有者）
-const articleAuthor = computed(() => {
-  // 优先使用发布者的 nickname（用户个人中心的 nickname）
+// 订阅相关状态
+const showSubscribeDialog = ref(false);
+const subscribeEmail = ref("");
+const subscribeCode = ref("");
+const isSubscribing = ref(false);
+const isSendingCode = ref(false);
+const codeCountdown = ref(0);
+let codeTimer: ReturnType<typeof setInterval> | null = null;
+
+// 格式化日期
+const formatDate = (dateString: string) => {
+  if (!dateString) return "";
+  const date = new Date(dateString);
+  const year = date.getFullYear();
+  const month = (date.getMonth() + 1).toString().padStart(2, "0");
+  const day = date.getDate().toString().padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+// 判断是否为转载文章
+const isReprintArticle = computed(() => props.article.is_reprint === true);
+
+// 获取文章发布者的信息（用于原创文章显示）
+const articlePublisher = computed(() => {
   if (props.article.owner_nickname) {
     return props.article.owner_nickname;
   }
-  // 其次使用发布者名称（已废弃，兼容旧数据）
   if (props.article.owner_name) {
     return props.article.owner_name;
   }
-  // 否则使用站点所有者名称
   return siteConfig.frontDesk?.siteOwner?.name || "本站博主";
+});
+
+// 获取显示的作者名称（转载文章显示原作者，原创文章显示发布者）
+const articleAuthor = computed(() => {
+  if (isReprintArticle.value && props.article.copyright_author) {
+    return props.article.copyright_author;
+  }
+  return articlePublisher.value;
+});
+
+// 获取作者链接（转载文章使用原作者链接）
+const articleAuthorHref = computed(() => {
+  if (isReprintArticle.value && props.article.copyright_author_href) {
+    return props.article.copyright_author_href;
+  }
+  return null;
 });
 
 // 获取文章发布者的头像（优先使用发布者头像，否则使用站点所有者头像）
@@ -61,29 +107,45 @@ const copyrightInfo = computed(() => {
   const licenseUrl =
     siteConfig.copyright?.license_url ??
     "https://creativecommons.org/licenses/by-nc-sa/4.0/";
-  const author = siteConfig.author?.name ?? "本站博主";
   const siteUrl = siteConfig.site?.url ?? "/";
-  const siteOwnerName = siteConfig.frontDesk?.siteOwner?.name;
-  const actualAuthor = articleAuthor.value; // 使用文章的实际作者
 
-  // 判断是否为转载文章
-  const isReprint =
-    props.article.copyright_author &&
-    props.article.copyright_author !== actualAuthor;
+  // 获取自定义版权声明模板配置
+  const copyrightConfig = siteConfig.post?.copyright;
 
-  if (isReprint) {
+  if (isReprintArticle.value) {
     // 转载文章的版权声明
-    const originalAuthor = props.article.copyright_author;
+    const originalAuthor =
+      props.article.copyright_author || articlePublisher.value;
     const originalUrl = props.article.copyright_url;
 
     if (originalUrl) {
-      return `本文是转载或翻译文章，版权归 <a href="${originalUrl}" target="_blank">${originalAuthor}</a> 所有。建议访问原文，转载本文请联系原作者。`;
+      // 有原文链接的转载文章
+      const templateWithUrl =
+        copyrightConfig?.reprintTemplateWithUrl ||
+        copyrightConfig?.reprint_template_with_url ||
+        '本文是转载或翻译文章，版权归 <a href="{originalUrl}" target="_blank">{originalAuthor}</a> 所有。建议访问原文，转载本文请联系原作者。';
+      return templateWithUrl
+        .replace(/{originalAuthor}/g, originalAuthor)
+        .replace(/{originalUrl}/g, originalUrl);
     } else {
-      return `本文是转载或翻译文章，版权归 ${originalAuthor} 所有。建议访问原文，转载本文请联系原作者。`;
+      // 无原文链接的转载文章
+      const templateWithoutUrl =
+        copyrightConfig?.reprintTemplateWithoutUrl ||
+        copyrightConfig?.reprint_template_without_url ||
+        "本文是转载或翻译文章，版权归 {originalAuthor} 所有。建议访问原文，转载本文请联系原作者。";
+      return templateWithoutUrl.replace(/{originalAuthor}/g, originalAuthor);
     }
   } else {
-    // 原创文章的版权声明（使用文章的实际作者）
-    return `本文是原创文章，采用 <a href="${licenseUrl}" target="_blank">${license}</a> 协议，完整转载请注明来自 <a href="${siteUrl}" target="_blank">${actualAuthor}</a>`;
+    // 原创文章的版权声明（使用文章发布者）
+    const originalTemplate =
+      copyrightConfig?.originalTemplate ||
+      copyrightConfig?.original_template ||
+      '本文是原创文章，采用 <a href="{licenseUrl}" target="_blank">{license}</a> 协议，完整转载请注明来自 <a href="{siteUrl}" target="_blank">{author}</a>';
+    return originalTemplate
+      .replace(/{license}/g, license)
+      .replace(/{licenseUrl}/g, licenseUrl)
+      .replace(/{author}/g, articlePublisher.value)
+      .replace(/{siteUrl}/g, siteUrl);
   }
 });
 
@@ -95,8 +157,202 @@ const goRss = () => {
   window.open("/rss.xml", "_blank");
 };
 
+// 订阅配置
+const subscribeConfig = computed(() => ({
+  enable: siteConfig.post?.subscribe?.enable ?? false,
+  buttonText: siteConfig.post?.subscribe?.buttonText || "订阅",
+  dialogTitle: siteConfig.post?.subscribe?.dialogTitle || "订阅博客更新",
+  dialogDesc:
+    siteConfig.post?.subscribe?.dialogDesc || "输入您的邮箱，获取最新文章推送"
+}));
+
+// 处理订阅按钮点击
+const handleSubscribeClick = () => {
+  if (subscribeConfig.value.enable) {
+    subscribeEmail.value = "";
+    subscribeCode.value = "";
+    showSubscribeDialog.value = true;
+  } else {
+    goRss();
+  }
+};
+
+// 发送验证码
+const handleSendCode = async () => {
+  if (!subscribeEmail.value) {
+    ElMessage.warning("请输入邮箱地址");
+    return;
+  }
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(subscribeEmail.value)) {
+    ElMessage.warning("请输入有效的邮箱地址");
+    return;
+  }
+
+  if (isSendingCode.value || codeCountdown.value > 0) return;
+
+  try {
+    isSendingCode.value = true;
+    const response = await fetch("/api/public/subscribe/code", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ email: subscribeEmail.value })
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+      ElMessage.success("验证码已发送，请查收邮件");
+      codeCountdown.value = 60;
+      codeTimer = setInterval(() => {
+        codeCountdown.value--;
+        if (codeCountdown.value <= 0) {
+          if (codeTimer) clearInterval(codeTimer);
+        }
+      }, 1000);
+    } else {
+      ElMessage.error(data.message || "发送验证码失败，请稍后重试");
+    }
+  } catch (error: any) {
+    ElMessage.error(error.message || "发送验证码失败，请稍后重试");
+  } finally {
+    isSendingCode.value = false;
+  }
+};
+
+// 提交订阅
+const handleSubscribe = async () => {
+  if (!subscribeEmail.value) {
+    ElMessage.warning("请输入邮箱地址");
+    return;
+  }
+
+  // 简单的邮箱格式验证
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(subscribeEmail.value)) {
+    ElMessage.warning("请输入有效的邮箱地址");
+    return;
+  }
+
+  if (!subscribeCode.value) {
+    ElMessage.warning("请输入验证码");
+    return;
+  }
+
+  try {
+    isSubscribing.value = true;
+    const response = await fetch("/api/public/subscribe", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        email: subscribeEmail.value,
+        code: subscribeCode.value
+      })
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+      ElMessage.success("订阅成功！您将在新文章发布时收到邮件通知");
+      showSubscribeDialog.value = false;
+      subscribeEmail.value = "";
+      subscribeCode.value = "";
+      codeCountdown.value = 0;
+      if (codeTimer) clearInterval(codeTimer);
+    } else {
+      ElMessage.error(data.message || "订阅失败，请稍后重试");
+    }
+  } catch (error: any) {
+    ElMessage.error(error.message || "订阅失败，请稍后重试");
+  } finally {
+    isSubscribing.value = false;
+  }
+};
+
 const goRewardPage = () => {
   router.push({ path: "/about" });
+};
+
+// 生成分享海报
+const handleGeneratePoster = async () => {
+  if (isGeneratingPoster.value) return;
+
+  try {
+    isGeneratingPoster.value = true;
+    ElMessage.info("正在生成海报...");
+
+    // 获取当前文章URL
+    const articleUrl = window.location.href;
+
+    // 获取文章封面图
+    const coverImage = props.article.cover_url || undefined;
+
+    // 获取文章简介（优先使用第一个摘要）
+    const description = props.article.summaries?.[0] || undefined;
+
+    // 格式化发布时间
+    const publishDate = formatDate(props.article.created_at);
+
+    // 生成海报
+    const dataUrl = await generatePoster({
+      title: props.article.title,
+      description: description,
+      author: articleAuthor.value,
+      authorAvatar: articleAuthorAvatar.value,
+      siteName: siteConfig.APP_NAME || siteConfig.frontDesk?.siteOwner?.name,
+      siteSubtitle: siteConfig.SUB_TITLE,
+      articleUrl: articleUrl,
+      coverImage: coverImage,
+      publishDate: publishDate
+    });
+
+    // 保存海报数据并显示弹窗
+    posterDataUrl.value = dataUrl;
+    showPosterDialog.value = true;
+    ElMessage.success("海报生成成功！");
+  } catch (error: any) {
+    console.error("生成海报失败:", error);
+    ElMessage.error(error.message || "生成海报失败，请稍后重试");
+  } finally {
+    isGeneratingPoster.value = false;
+  }
+};
+
+// 下载海报
+const handleDownloadPoster = () => {
+  if (!posterDataUrl.value) return;
+  const filename = `${props.article.title || "文章"}_分享海报.png`;
+  downloadPoster(posterDataUrl.value, filename);
+};
+
+// 获取当前文章URL
+const articleUrl = computed(() => window.location.href);
+
+// 复制链接
+const handleCopyLink = async () => {
+  await copyToClipboard(articleUrl.value);
+  ElMessage.success("链接已复制到剪贴板");
+};
+
+// 分享到社交平台
+const shareToWeibo = () => {
+  const url = `https://service.weibo.com/share/share.php?url=${encodeURIComponent(articleUrl.value)}&title=${encodeURIComponent(props.article.title)}`;
+  window.open(url, "_blank", "width=600,height=400");
+};
+
+const shareToQQ = () => {
+  const url = `https://connect.qq.com/widget/shareqq/index.html?url=${encodeURIComponent(articleUrl.value)}&title=${encodeURIComponent(props.article.title)}&summary=${encodeURIComponent(props.article.summaries?.[0] || "")}`;
+  window.open(url, "_blank", "width=600,height=400");
+};
+
+const shareToQZone = () => {
+  const url = `https://sns.qzone.qq.com/cgi-bin/qzshare/cgi_qzshare_onekey?url=${encodeURIComponent(articleUrl.value)}&title=${encodeURIComponent(props.article.title)}&summary=${encodeURIComponent(props.article.summaries?.[0] || "")}`;
+  window.open(url, "_blank", "width=600,height=400");
 };
 
 // 检查是否有任何打赏方式可用
@@ -131,6 +387,39 @@ const isAlipayEnabled = computed(() => {
   const reward = siteConfig.post?.reward;
   return reward?.alipay_enable !== false && reward?.alipay_qr;
 });
+
+// 版权区域按钮显示控制（系统级别 && 文章级别）
+// 兼容后端返回的下划线格式（show_reward_button）和前端期望的驼峰格式（showRewardButton）
+const showRewardButton = computed(() => {
+  const copyright = siteConfig.post?.copyright;
+  // 优先使用驼峰格式，兼容下划线格式
+  const globalSetting =
+    copyright?.showRewardButton ?? copyright?.show_reward_button ?? true;
+  return globalSetting !== false && props.article.show_reward_button !== false;
+});
+const showShareButton = computed(() => {
+  const copyright = siteConfig.post?.copyright;
+  const globalSetting =
+    copyright?.showShareButton ?? copyright?.show_share_button ?? true;
+  return globalSetting !== false && props.article.show_share_button !== false;
+});
+const showSubscribeButton = computed(() => {
+  const copyright = siteConfig.post?.copyright;
+  const globalSetting =
+    copyright?.showSubscribeButton ?? copyright?.show_subscribe_button ?? true;
+  return (
+    globalSetting !== false && props.article.show_subscribe_button !== false
+  );
+});
+
+// 判断是否有任何按钮需要显示（用于控制 button-group 的渲染）
+const hasAnyButton = computed(() => {
+  const rewardVisible =
+    showRewardButton.value &&
+    siteConfig.post?.reward?.enable &&
+    hasAnyRewardMethod.value;
+  return rewardVisible || showShareButton.value || showSubscribeButton.value;
+});
 </script>
 
 <template>
@@ -139,13 +428,31 @@ const isAlipayEnabled = computed(() => {
       <img :src="articleAuthorAvatar" alt="作者头像" />
     </div>
     <div class="author-name">
-      {{ articleAuthor }}
+      <a
+        v-if="articleAuthorHref"
+        :href="articleAuthorHref"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="author-link"
+      >
+        {{ articleAuthor }}
+      </a>
+      <span v-else>{{ articleAuthor }}</span>
     </div>
-    <div class="author-desc">{{ siteConfig?.SUB_TITLE }}</div>
+    <div class="author-desc">
+      <template v-if="isReprintArticle"> 转载文章 · 原作者 </template>
+      <template v-else>
+        {{ siteConfig?.SUB_TITLE }}
+      </template>
+    </div>
 
-    <div class="button-group">
+    <div v-if="hasAnyButton" class="button-group">
       <div
-        v-if="siteConfig.post.reward?.enable && hasAnyRewardMethod"
+        v-if="
+          showRewardButton &&
+          siteConfig.post.reward?.enable &&
+          hasAnyRewardMethod
+        "
         class="reward"
       >
         <div class="reward-button" @click="showRewardPanel = !showRewardPanel">
@@ -196,15 +503,147 @@ const isAlipayEnabled = computed(() => {
           @click="showRewardPanel = !showRewardPanel"
         />
       </Transition>
-      <div class="subscribe-button" @click="goRss">
+      <div
+        v-if="showSubscribeButton"
+        class="subscribe-button"
+        @click="handleSubscribeClick"
+      >
         <IconifyIconOffline :icon="RssIcon" />
-        <span>订阅</span>
+        <span>{{ subscribeConfig.buttonText }}</span>
+      </div>
+      <div
+        v-if="showShareButton"
+        class="share-button"
+        :class="{ loading: isGeneratingPoster }"
+        @click="handleGeneratePoster"
+      >
+        <IconifyIconOffline :icon="ShareIcon" />
+        <span>{{ isGeneratingPoster ? "生成中..." : "分享" }}</span>
       </div>
     </div>
 
     <div class="copyright-notice">
       <span v-html="copyrightInfo" />
     </div>
+
+    <!-- 海报预览弹窗 -->
+    <AnDialog
+      v-model="showPosterDialog"
+      title="分享海报"
+      width="720px"
+      max-width="95vw"
+      :show-footer="false"
+      class="share-poster-dialog"
+    >
+      <div class="poster-dialog-content">
+        <!-- 左侧：海报预览 -->
+        <div class="poster-preview-side">
+          <div v-if="posterDataUrl" class="poster-image-wrapper">
+            <img :src="posterDataUrl" alt="分享海报" class="poster-image" />
+          </div>
+          <div v-else class="poster-loading">
+            <p>正在生成海报...</p>
+          </div>
+        </div>
+
+        <!-- 右侧：操作区域 -->
+        <div class="poster-actions-side">
+          <!-- 复制链接 -->
+          <div class="action-section">
+            <div class="section-label">点击复制链接：</div>
+            <el-input
+              :model-value="articleUrl"
+              readonly
+              class="url-input"
+              @click="handleCopyLink"
+            />
+          </div>
+
+          <!-- 分享到 -->
+          <div class="action-section">
+            <div class="section-label">分享到：</div>
+            <div class="share-buttons">
+              <el-button
+                class="share-btn share-btn-weibo"
+                @click="shareToWeibo"
+              >
+                <IconifyIconOffline :icon="WeiboIcon" />
+                <span>微博</span>
+              </el-button>
+              <el-button class="share-btn share-btn-qq" @click="shareToQQ">
+                <IconifyIconOffline :icon="QQIcon" />
+                <span>QQ好友</span>
+              </el-button>
+              <el-button
+                class="share-btn share-btn-qzone"
+                @click="shareToQZone"
+              >
+                <IconifyIconOffline :icon="QQIcon" />
+                <span>QQ空间</span>
+              </el-button>
+            </div>
+          </div>
+
+          <!-- 下载海报 -->
+          <div class="action-section">
+            <div class="section-label">下载海报：</div>
+            <el-button class="download-btn" @click="handleDownloadPoster">
+              <span>点击下载</span>
+            </el-button>
+          </div>
+        </div>
+      </div>
+    </AnDialog>
+
+    <!-- 订阅弹窗 -->
+    <AnDialog
+      v-model="showSubscribeDialog"
+      :title="subscribeConfig.dialogTitle"
+      width="400px"
+      max-width="90vw"
+      :show-footer="false"
+      class="subscribe-dialog"
+    >
+      <div class="subscribe-dialog-content">
+        <p class="subscribe-desc">{{ subscribeConfig.dialogDesc }}</p>
+        <el-input
+          v-model="subscribeEmail"
+          placeholder="请输入您的邮箱"
+          size="large"
+          :disabled="isSubscribing"
+          @keyup.enter="handleSubscribe"
+        />
+        <div class="code-input-wrapper">
+          <el-input
+            v-model="subscribeCode"
+            placeholder="请输入验证码"
+            size="large"
+            :disabled="isSubscribing"
+            @keyup.enter="handleSubscribe"
+          />
+          <el-button
+            type="primary"
+            size="large"
+            :disabled="codeCountdown > 0 || isSendingCode"
+            class="send-code-btn"
+            @click="handleSendCode"
+          >
+            {{ codeCountdown > 0 ? `${codeCountdown}s` : "发送验证码" }}
+          </el-button>
+        </div>
+        <div class="subscribe-actions">
+          <el-button
+            type="primary"
+            size="large"
+            :loading="isSubscribing"
+            @click="handleSubscribe"
+          >
+            {{ isSubscribing ? "订阅中..." : "订阅" }}
+          </el-button>
+        </div>
+        <p class="subscribe-tips">您可以随时通过邮件中的链接取消订阅</p>
+      </div>
+    </AnDialog>
   </div>
 </template>
 
@@ -261,6 +700,18 @@ const isAlipayEnabled = computed(() => {
   line-height: 1;
   color: var(--anzhiyu-fontcolor);
   text-align: center;
+
+  .author-link {
+    color: var(--anzhiyu-fontcolor);
+    text-decoration: none;
+    border-bottom: 2px solid transparent;
+    transition: all 0.3s ease;
+
+    &:hover {
+      color: var(--anzhiyu-main);
+      border-bottom-color: var(--anzhiyu-main);
+    }
+  }
 }
 
 .author-desc {
@@ -301,7 +752,8 @@ const isAlipayEnabled = computed(() => {
   }
 
   .reward-button,
-  .subscribe-button {
+  .subscribe-button,
+  .share-button {
     display: flex;
     gap: 0.5rem;
     align-items: center;
@@ -319,10 +771,19 @@ const isAlipayEnabled = computed(() => {
       background: var(--anzhiyu-theme);
       box-shadow: none;
     }
+
+    &.loading {
+      cursor: not-allowed;
+      opacity: 0.7;
+    }
   }
 
   .subscribe-button {
     background: var(--anzhiyu-green);
+  }
+
+  .share-button {
+    background: var(--anzhiyu-blue);
   }
 }
 
@@ -534,5 +995,238 @@ const isAlipayEnabled = computed(() => {
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
+}
+
+.poster-dialog-content {
+  display: flex;
+  gap: 1.5rem;
+  padding: 1rem;
+
+  @media (width <= 768px) {
+    flex-direction: column;
+    gap: 1.2rem;
+  }
+}
+
+.poster-preview-side {
+  flex: 0 0 320px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+
+  @media (width <= 768px) {
+    flex: 1;
+    width: 100%;
+  }
+
+  .poster-image-wrapper {
+    width: 100%;
+    max-width: 320px;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    background: #fff;
+    border: 1px solid #e8e8e8;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  }
+
+  .poster-image {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+
+  .poster-loading {
+    padding: 3rem;
+    text-align: center;
+    color: var(--anzhiyu-secondtext);
+    font-size: 14px;
+  }
+}
+
+.poster-actions-side {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: 0.5rem 0;
+  justify-content: center;
+
+  .action-section {
+    .section-label {
+      margin-bottom: 0.6rem;
+      font-size: 14px;
+      color: var(--anzhiyu-fontcolor);
+    }
+
+    .url-input {
+      :deep(.el-input__wrapper) {
+        cursor: pointer;
+        font-size: 13px;
+        background: var(--anzhiyu-card-bg);
+        border: var(--style-border);
+        box-shadow: none;
+        border-radius: 6px;
+        transition: all 0.3s ease;
+
+        &:hover {
+          border-color: var(--anzhiyu-main);
+        }
+      }
+    }
+
+    .share-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+
+      .share-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        border: none;
+        font-weight: 500;
+        padding: 12px 20px;
+        font-size: 14px;
+        border-radius: 6px;
+        width: 100%;
+
+        &:hover {
+          opacity: 0.9;
+        }
+
+        svg {
+          font-size: 18px;
+        }
+
+        &.share-btn-weibo {
+          background: #e6162d;
+          color: #fff;
+
+          &:hover {
+            background: #d1142a;
+          }
+        }
+
+        &.share-btn-qq {
+          background: #12b7f5;
+          color: #fff;
+          margin-top: 0.6rem;
+          margin-left: 0;
+
+          &:hover {
+            background: #0fa5db;
+          }
+        }
+
+        &.share-btn-qzone {
+          background: #fcee21;
+          color: #333;
+          margin-top: 0.6rem;
+          margin-left: 0;
+
+          &:hover {
+            background: #f5e31a;
+          }
+        }
+      }
+    }
+
+    .download-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      background: #4a4a4a;
+      border: none;
+      padding: 12px 20px;
+      font-size: 14px;
+      font-weight: 500;
+      border-radius: 6px;
+      color: #fff;
+
+      &:hover {
+        background: #3a3a3a;
+      }
+    }
+  }
+}
+
+// 订阅弹窗样式
+.subscribe-dialog-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1rem;
+  text-align: center;
+
+  .subscribe-desc {
+    margin: 0 0 1.5rem;
+    font-size: 15px;
+    color: var(--anzhiyu-secondtext);
+    line-height: 1.6;
+  }
+
+  .code-input-wrapper {
+    display: flex;
+    gap: 12px;
+    width: 100%;
+    max-width: 300px;
+    margin-top: 1rem;
+
+    .el-input {
+      flex: 1;
+      width: auto;
+      max-width: none;
+    }
+
+    .send-code-btn {
+      width: 110px;
+      flex-shrink: 0;
+      border-radius: 8px;
+      font-weight: 600;
+    }
+  }
+
+  :deep(.el-input) {
+    width: 100%;
+    max-width: 300px;
+
+    .el-input__wrapper {
+      background: var(--anzhiyu-card-bg);
+      border: var(--style-border);
+      box-shadow: none;
+
+      &:hover,
+      &.is-focus {
+        border-color: var(--anzhiyu-theme);
+        box-shadow: none;
+      }
+      border-radius: 8px;
+    }
+  }
+
+  .subscribe-actions {
+    margin-top: 1.5rem;
+    width: 100%;
+    max-width: 300px;
+
+    .el-button {
+      width: 100%;
+      border-radius: 8px;
+      font-weight: 600;
+    }
+  }
+
+  .subscribe-tips {
+    margin: 1rem 0 0;
+    font-size: 12px;
+    color: var(--anzhiyu-secondtext);
+    opacity: 0.7;
+  }
 }
 </style>

@@ -2,7 +2,7 @@
  * @Description:
  * @Author: 安知鱼
  * @Date: 2025-08-02 18:04:48
- * @LastEditTime: 2025-12-08 11:15:25
+ * @LastEditTime: 2026-01-19 10:11:07
  * @LastEditors: 安知鱼
 -->
 <template>
@@ -27,19 +27,36 @@
     />
   </el-form-item>
 
+  <el-form-item label="启用分类主色调标签">
+    <div>
+      <el-switch
+        v-model="formData.default.enablePrimaryColorTag"
+        placeholder="例如：false"
+      />
+      <div class="form-item-help">
+        启用后，文章卡片的分类标签会使用文章封面的主色调作为背景色，呈现彩色标签效果。<br />
+        <strong
+          >默认关闭，开启后需要文章有封面图片且已提取主色调才能生效。</strong
+        >
+      </div>
+    </div>
+  </el-form-item>
+
   <el-form-item label="文章过期时间">
-    <el-input-number
-      v-model="formData.expirationTime"
-      :min="0"
-      controls-position="right"
-      style="width: 100%"
-      placeholder="例如: 365"
-      :style="{ width: '100px' }"
-      :value-on-clear="null"
-    />
-    <div class="form-item-help">
-      文章过期时间，单位为天。<br />
-      <strong>不填则没有过期时间组件展示。</strong>
+    <div>
+      <el-input-number
+        v-model="formData.expirationTime"
+        :min="0"
+        controls-position="right"
+        style="width: 100%"
+        placeholder="例如: 365"
+        :style="{ width: '130px' }"
+        :value-on-clear="null"
+      />
+      <div class="form-item-help">
+        文章过期时间，单位为天。<br />
+        <strong>不填则没有过期时间组件展示。</strong>
+      </div>
     </div>
   </el-form-item>
 
@@ -87,7 +104,6 @@
     <el-input
       v-model="formData.ipApiToken"
       placeholder="请输入IP属地查询 API Token"
-      show-password
     />
     <div class="form-item-help">
       配合 IP 属地查询 API 使用的 Token (如有)。
@@ -104,11 +120,13 @@
   </el-form-item>
 
   <el-form-item label="开启微信打赏">
-    <el-switch
-      v-model="formData.reward.weChatEnable"
-      :disabled="!formData.reward.enable"
-    />
-    <div class="form-item-help">单独控制是否显示微信打赏方式。</div>
+    <div>
+      <el-switch
+        v-model="formData.reward.weChatEnable"
+        :disabled="!formData.reward.enable"
+      />
+      <div class="form-item-help">单独控制是否显示微信打赏方式。</div>
+    </div>
   </el-form-item>
 
   <el-form-item label="文章打赏微信二维码图片">
@@ -129,11 +147,13 @@
   </el-form-item>
 
   <el-form-item label="开启支付宝打赏">
-    <el-switch
-      v-model="formData.reward.aliPayEnable"
-      :disabled="!formData.reward.enable"
-    />
-    <div class="form-item-help">单独控制是否显示支付宝打赏方式。</div>
+    <div>
+      <el-switch
+        v-model="formData.reward.aliPayEnable"
+        :disabled="!formData.reward.enable"
+      />
+      <div class="form-item-help">单独控制是否显示支付宝打赏方式。</div>
+    </div>
   </el-form-item>
 
   <el-form-item label="文章打赏支付宝二维码图片">
@@ -197,17 +217,224 @@
     </div>
   </el-form-item>
 
-  <el-form-item label="代码块最大行数">
-    <el-input-number
-      v-model="formData.codeBlock.codeMaxLines"
-      :min="1"
-      :max="1000"
-      controls-position="right"
-      style="width: 100px"
-      placeholder="例如: 50"
+  <el-divider content-position="left">
+    <h3>文章订阅配置</h3>
+  </el-divider>
+
+  <el-form-item label="启用订阅功能">
+    <div>
+      <el-switch
+        :model-value="formData.subscribe?.enable ?? false"
+        @update:model-value="
+          (val: boolean) => {
+            if (!formData.subscribe) {
+              formData.subscribe = {
+                enable: false,
+                buttonText: '订阅',
+                dialogTitle: '订阅博客更新',
+                dialogDesc: '输入您的邮箱，获取最新文章推送',
+                mailSubject: '',
+                mailTemplate: ''
+              };
+            }
+            formData.subscribe.enable = val;
+          }
+        "
+      />
+      <div class="form-item-help">
+        启用后，文章底部的订阅按钮将打开订阅弹窗，用户可以输入邮箱进行订阅。<br />
+        <strong>未启用时，订阅按钮将直接跳转到 RSS 订阅页面。</strong>
+      </div>
+    </div>
+  </el-form-item>
+
+  <el-form-item label="订阅按钮文案">
+    <el-input
+      :model-value="formData.subscribe?.buttonText ?? '订阅'"
+      :disabled="!(formData.subscribe?.enable ?? false)"
+      placeholder="例如：订阅"
+      @update:model-value="
+        (val: string) => {
+          if (!formData.subscribe) {
+            formData.subscribe = {
+              enable: false,
+              buttonText: '订阅',
+              dialogTitle: '订阅博客更新',
+              dialogDesc: '输入您的邮箱，获取最新文章推送',
+              mailSubject: '',
+              mailTemplate: ''
+            };
+          }
+          formData.subscribe.buttonText = val;
+        }
+      "
+    />
+    <div class="form-item-help">文章底部订阅按钮的显示文案，默认为"订阅"。</div>
+  </el-form-item>
+
+  <el-form-item label="订阅弹窗标题">
+    <el-input
+      :model-value="formData.subscribe?.dialogTitle ?? '订阅博客更新'"
+      :disabled="!(formData.subscribe?.enable ?? false)"
+      placeholder="例如：订阅博客更新"
+      @update:model-value="
+        (val: string) => {
+          if (!formData.subscribe) {
+            formData.subscribe = {
+              enable: false,
+              buttonText: '订阅',
+              dialogTitle: '订阅博客更新',
+              dialogDesc: '输入您的邮箱，获取最新文章推送',
+              mailSubject: '',
+              mailTemplate: ''
+            };
+          }
+          formData.subscribe.dialogTitle = val;
+        }
+      "
+    />
+    <div class="form-item-help">订阅弹窗的标题文案。</div>
+  </el-form-item>
+
+  <el-form-item label="订阅弹窗描述">
+    <el-input
+      :model-value="
+        formData.subscribe?.dialogDesc ?? '输入您的邮箱，获取最新文章推送'
+      "
+      :disabled="!(formData.subscribe?.enable ?? false)"
+      placeholder="例如：输入您的邮箱，获取最新文章推送"
+      @update:model-value="
+        (val: string) => {
+          if (!formData.subscribe) {
+            formData.subscribe = {
+              enable: false,
+              buttonText: '订阅',
+              dialogTitle: '订阅博客更新',
+              dialogDesc: '输入您的邮箱，获取最新文章推送',
+              mailSubject: '',
+              mailTemplate: ''
+            };
+          }
+          formData.subscribe.dialogDesc = val;
+        }
+      "
+    />
+    <div class="form-item-help">订阅弹窗的描述文案，显示在邮箱输入框上方。</div>
+  </el-form-item>
+
+  <el-form-item label="订阅邮件主题">
+    <el-input
+      :model-value="formData.subscribe?.mailSubject ?? ''"
+      :disabled="!(formData.subscribe?.enable ?? false)"
+      placeholder="例如：【{{.SITE_NAME}}】新文章发布：{{.TITLE}}"
+      @update:model-value="
+        (val: string) => {
+          if (!formData.subscribe) {
+            formData.subscribe = {
+              enable: false,
+              buttonText: '订阅',
+              dialogTitle: '订阅博客更新',
+              dialogDesc: '输入您的邮箱，获取最新文章推送',
+              mailSubject: '',
+              mailTemplate: ''
+            };
+          }
+          formData.subscribe.mailSubject = val;
+        }
+      "
     />
     <div class="form-item-help">
-      代码块超过此行数时将显示滚动条，默认为10行。
+      新文章发布时发送给订阅者的邮件主题。<br />
+      支持变量：<code v-pre>{{.SITE_NAME}}</code> 站点名称、<code
+        v-pre
+        >{{.TITLE}}</code
+      >
+      文章标题
+    </div>
+  </el-form-item>
+
+  <el-form-item label="订阅邮件模板">
+    <el-input
+      :model-value="formData.subscribe?.mailTemplate ?? ''"
+      :disabled="!(formData.subscribe?.enable ?? false)"
+      type="textarea"
+      :rows="6"
+      placeholder="输入邮件 HTML 模板..."
+      @update:model-value="
+        (val: string) => {
+          if (!formData.subscribe) {
+            formData.subscribe = {
+              enable: false,
+              buttonText: '订阅',
+              dialogTitle: '订阅博客更新',
+              dialogDesc: '输入您的邮箱，获取最新文章推送',
+              mailSubject: '',
+              mailTemplate: ''
+            };
+          }
+          formData.subscribe.mailTemplate = val;
+        }
+      "
+    />
+    <div class="form-item-help">
+      新文章发布时发送给订阅者的邮件 HTML 模板。<br />
+      支持变量：<code v-pre>{{.SITE_NAME}}</code> 站点名称、<code
+        v-pre
+        >{{.TITLE}}</code
+      >
+      文章标题、<code v-pre>{{.SUMMARY}}</code> 文章摘要、<code
+        v-pre
+        >{{.POST_URL}}</code
+      >
+      文章链接、<code v-pre>{{.UNSUBSCRIBE_URL}}</code> 退订链接
+    </div>
+  </el-form-item>
+
+  <el-form-item label="代码块最大行数">
+    <div>
+      <el-input-number
+        v-model="formData.codeBlock.codeMaxLines"
+        :min="1"
+        :max="1000"
+        controls-position="right"
+        style="width: 100px"
+        placeholder="例如: 50"
+      />
+      <div class="form-item-help">
+        代码块超过此行数时将显示滚动条，默认为10行。此处为约数，不是准确行数，可以适当上下调整。
+      </div>
+    </div>
+  </el-form-item>
+
+  <el-form-item label="Mac 样式代码块">
+    <div>
+      <el-switch
+        v-model="formData.codeBlock.macStyle"
+        placeholder="例如：false"
+      />
+      <div class="form-item-help">
+        开启后，代码块头部将显示 Mac
+        风格的三个装饰圆点（红、黄、绿），提升视觉美观度。
+      </div>
+    </div>
+  </el-form-item>
+
+  <el-form-item label="显示文章波浪区域">
+    <div>
+      <el-switch
+        :model-value="formData.waves?.enable ?? true"
+        @update:model-value="
+          (val: boolean) => {
+            if (!formData.waves) {
+              formData.waves = { enable: true };
+            }
+            formData.waves.enable = val;
+          }
+        "
+      />
+      <div class="form-item-help">
+        控制文章详情页顶部的波浪装饰区域是否显示。关闭后将隐藏文章头部下方的波浪动画效果。
+      </div>
     </div>
   </el-form-item>
 
@@ -301,15 +528,134 @@
   </el-form-item>
 
   <el-divider content-position="left">
+    <h3>版权区域按钮全局开关</h3>
+  </el-divider>
+
+  <el-form-item label="显示打赏按钮">
+    <div>
+      <el-switch
+        :model-value="formData.copyright?.showRewardButton ?? true"
+        @update:model-value="
+          (val: boolean) => {
+            initCopyright();
+            formData.copyright!.showRewardButton = val;
+          }
+        "
+      />
+      <div class="form-item-help">
+        全局控制所有文章底部是否显示打赏按钮。关闭后所有文章都不会显示打赏按钮。
+      </div>
+    </div>
+  </el-form-item>
+
+  <el-form-item label="显示分享按钮">
+    <div>
+      <el-switch
+        :model-value="formData.copyright?.showShareButton ?? true"
+        @update:model-value="
+          (val: boolean) => {
+            initCopyright();
+            formData.copyright!.showShareButton = val;
+          }
+        "
+      />
+      <div class="form-item-help">
+        全局控制所有文章底部是否显示分享按钮。关闭后所有文章都不会显示分享按钮。
+      </div>
+    </div>
+  </el-form-item>
+
+  <el-form-item label="显示订阅按钮">
+    <div>
+      <el-switch
+        :model-value="formData.copyright?.showSubscribeButton ?? true"
+        @update:model-value="
+          (val: boolean) => {
+            initCopyright();
+            formData.copyright!.showSubscribeButton = val;
+          }
+        "
+      />
+      <div class="form-item-help">
+        全局控制所有文章底部是否显示订阅按钮。关闭后所有文章都不会显示订阅按钮。
+      </div>
+    </div>
+  </el-form-item>
+
+  <el-divider content-position="left">
+    <h3>文章底部版权声明配置</h3>
+  </el-divider>
+
+  <el-form-item label="原创文章版权声明模板">
+    <el-input
+      :model-value="formData.copyright?.originalTemplate ?? ''"
+      type="textarea"
+      :rows="3"
+      placeholder='本文是原创文章，采用 <a href="{licenseUrl}" target="_blank">{license}</a> 协议，完整转载请注明来自 <a href="{siteUrl}" target="_blank">{author}</a>'
+      @update:model-value="
+        (val: string) => {
+          initCopyright();
+          formData.copyright!.originalTemplate = val;
+        }
+      "
+    />
+    <div class="form-item-help">
+      文章底部显示的原创文章版权声明文案，支持 HTML 标签。<br />
+      支持变量：<code>{license}</code> 许可协议名称、<code>{licenseUrl}</code>
+      许可协议链接、<code>{author}</code> 文章作者、<code>{siteUrl}</code>
+      站点链接
+    </div>
+  </el-form-item>
+
+  <el-form-item label="转载文章版权声明模板（有原文链接）">
+    <el-input
+      :model-value="formData.copyright?.reprintTemplateWithUrl ?? ''"
+      type="textarea"
+      :rows="3"
+      placeholder='本文是转载或翻译文章，版权归 <a href="{originalUrl}" target="_blank">{originalAuthor}</a> 所有。建议访问原文，转载本文请联系原作者。'
+      @update:model-value="
+        (val: string) => {
+          initCopyright();
+          formData.copyright!.reprintTemplateWithUrl = val;
+        }
+      "
+    />
+    <div class="form-item-help">
+      转载文章（有原文链接）的版权声明文案，支持 HTML 标签。<br />
+      支持变量：<code>{originalAuthor}</code> 原作者、<code>{originalUrl}</code>
+      原文链接
+    </div>
+  </el-form-item>
+
+  <el-form-item label="转载文章版权声明模板（无原文链接）">
+    <el-input
+      :model-value="formData.copyright?.reprintTemplateWithoutUrl ?? ''"
+      type="textarea"
+      :rows="3"
+      placeholder="本文是转载或翻译文章，版权归 {originalAuthor} 所有。建议访问原文，转载本文请联系原作者。"
+      @update:model-value="
+        (val: string) => {
+          initCopyright();
+          formData.copyright!.reprintTemplateWithoutUrl = val;
+        }
+      "
+    />
+    <div class="form-item-help">
+      转载文章（无原文链接）的版权声明文案，支持 HTML 标签。<br />
+      支持变量：<code>{originalAuthor}</code> 原作者
+    </div>
+  </el-form-item>
+
+  <el-divider content-position="left">
     <h3>目录配置</h3>
   </el-divider>
 
-  <el-form-item label="目录滚动Hash更新模式">
+  <el-form-item label="目录滚动更新Hash">
     <div>
       <el-select
         :model-value="formData.toc?.hashUpdateMode ?? 'replace'"
         placeholder="请选择Hash更新模式"
-        style="width: 200px"
+        style="width: 260px"
         @update:model-value="
           (val: string) => {
             if (!formData.toc) {
@@ -319,15 +665,15 @@
           }
         "
       >
-        <el-option label="替换（不产生历史记录）" value="replace" />
-        <el-option label="不更新（URL保持不变）" value="none" />
+        <el-option label="启用（滚动时更新Hash）" value="replace" />
+        <el-option label="禁用（滚动时不更新Hash）" value="none" />
       </el-select>
       <div class="form-item-help">
-        控制阅读文章时，目录滚动导致的URL Hash变化行为。<br />
-        <strong>替换模式</strong>：使用 history.replaceState
-        更新Hash，浏览器后退不会逐个回退Hash。<br />
-        <strong>不更新模式</strong
-        >：滚动时不自动更新URL中的Hash，避免产生任何历史记录。
+        控制阅读文章时，目录滚动是否同步更新URL中的Hash值。<br />
+        <strong>启用</strong
+        >：滚动时自动更新URL中的Hash，方便分享定位到具体章节。<br />
+        <strong>禁用</strong>：滚动时保持URL不变，Hash始终为空。<br />
+        注：无论哪种模式，都使用 replaceState 更新，浏览器后退不会逐个回退Hash。
       </div>
     </div>
   </el-form-item>
@@ -787,6 +1133,20 @@ const initReviewNotify = () => {
       mailTemplateApproved: "",
       mailSubjectRejected: "",
       mailTemplateRejected: ""
+    };
+  }
+};
+
+// 初始化版权声明配置对象
+const initCopyright = () => {
+  if (!formData.value.copyright) {
+    formData.value.copyright = {
+      originalTemplate: "",
+      reprintTemplateWithUrl: "",
+      reprintTemplateWithoutUrl: "",
+      showRewardButton: true,
+      showShareButton: true,
+      showSubscribeButton: true
     };
   }
 };

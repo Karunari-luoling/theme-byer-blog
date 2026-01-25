@@ -9,6 +9,8 @@ interface ArticleLink {
   id: string;
   title: string;
   abbrlink: string;
+  is_doc?: boolean;
+  doc_series_id?: string;
 }
 
 defineProps({
@@ -32,7 +34,11 @@ defineProps({
     <router-link
       v-if="prevArticle"
       class="pagination-item left"
-      :to="`/posts/${prevArticle.abbrlink || prevArticle.id}`"
+      :to="
+        prevArticle.is_doc || prevArticle.doc_series_id
+          ? `/doc/${prevArticle.id}`
+          : `/posts/${prevArticle.abbrlink || prevArticle.id}`
+      "
     >
       <div class="pagination-info">
         <div class="label">上一篇</div>
@@ -43,7 +49,11 @@ defineProps({
     <router-link
       v-if="nextArticle"
       class="pagination-item right"
-      :to="`/posts/${nextArticle.abbrlink || nextArticle.id}`"
+      :to="
+        nextArticle.is_doc || nextArticle.doc_series_id
+          ? `/doc/${nextArticle.id}`
+          : `/posts/${nextArticle.abbrlink || nextArticle.id}`
+      "
     >
       <div class="pagination-info">
         <div class="label">下一篇</div>

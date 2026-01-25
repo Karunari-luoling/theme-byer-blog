@@ -65,8 +65,13 @@ const formatDate = (dateString: string) => {
 };
 
 // 跳转到文章详情
-const goToPost = (id: string) => {
-  router.push(`/posts/${id}`);
+const goToPost = (article: (typeof groupedArticles.value)[string][number]) => {
+  // 如果是文档类型，跳转到文档详情页
+  if (article.is_doc || article.doc_series_id) {
+    router.push(`/doc/${article.id}`);
+  } else {
+    router.push(`/posts/${article.id}`);
+  }
 };
 
 // 跳转到标签页
@@ -87,7 +92,7 @@ const goToTag = (tagName: string) => {
           v-for="article in groupedArticles[year]"
           :key="article.id"
           class="article-sort-item"
-          @click="goToPost(article.id)"
+          @click="goToPost(article)"
         >
           <a class="article-sort-item-img">
             <img

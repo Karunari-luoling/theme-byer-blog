@@ -121,7 +121,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { Delete } from "@element-plus/icons-vue";
-import dayjs from "dayjs";
+import { formatToChina } from "@/utils/dayjs";
 import { message } from "@/utils/message";
 import type { AdminOrderInfo } from "@/api/payment";
 import AnDialog from "@/components/AnDialog/index.vue";
@@ -190,16 +190,24 @@ const getProviderText = (provider: string): string => {
 
 // 获取订单类型标签类型
 const getOrderTypeTagType = (order: AdminOrderInfo): TagType => {
-  if (order.share_id) return "primary";
-  if (order.article_id) return "success";
-  return "info";
+  const typeMap: Record<string, TagType> = {
+    ARTICLE: "success",
+    SHARE: "primary",
+    PRODUCT: "warning",
+    MEMBERSHIP: "danger"
+  };
+  return typeMap[order.order_type] || "info";
 };
 
 // 获取订单类型文本
 const getOrderTypeText = (order: AdminOrderInfo): string => {
-  if (order.share_id) return "分享购买";
-  if (order.article_id) return "文章购买";
-  return "未知类型";
+  const typeMap: Record<string, string> = {
+    ARTICLE: "文章购买",
+    SHARE: "分享购买",
+    PRODUCT: "商品购买",
+    MEMBERSHIP: "会员订阅"
+  };
+  return typeMap[order.order_type] || "未知类型";
 };
 
 // 格式化金额
@@ -210,7 +218,7 @@ const formatAmount = (amount: number): string => {
 // 格式化日期时间
 const formatDateTime = (dateTime: string): string => {
   if (!dateTime) return "-";
-  return dayjs(dateTime).format("YYYY-MM-DD HH:mm:ss");
+  return formatToChina(dateTime);
 };
 
 // 复制订单号

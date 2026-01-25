@@ -23,6 +23,14 @@
         <i class="anzhiyufont anzhiyu-icon-copy" />
         <span>复制选中文本</span>
       </div>
+      <div
+        v-if="isTextInPostDetailContent"
+        class="rightMenu-item"
+        @click.stop="quoteToComment"
+      >
+        <IconifyIconOffline icon="ri:chat-1-fill" />
+        <span>引用到评论</span>
+      </div>
       <div class="rightMenu-item" @click.stop="searchLocal">
         <i class="anzhiyufont anzhiyu-icon-magnifying-glass" />
         <span>站内搜索</span>
@@ -34,18 +42,30 @@
     </div>
 
     <div v-else class="rightMenu-group rightMenu-line">
-      <a class="rightMenu-item menu-link" @click.stop="randomNavigate">
+      <router-link
+        class="rightMenu-item menu-link"
+        to="/random"
+        @click.stop="randomNavigate"
+      >
         <i class="anzhiyufont anzhiyu-icon-shuffle" />
         <span>随便逛逛</span>
-      </a>
-      <a class="rightMenu-item menu-link" @click.stop="gotoCategory">
+      </router-link>
+      <router-link
+        class="rightMenu-item menu-link"
+        to="/categories"
+        @click.stop="hideMenu"
+      >
         <i class="anzhiyufont anzhiyu-icon-cube" />
         <span>博客分类</span>
-      </a>
-      <a class="rightMenu-item menu-link" @click.stop="gotoTag">
+      </router-link>
+      <router-link
+        class="rightMenu-item menu-link"
+        to="/tags"
+        @click.stop="hideMenu"
+      >
         <i class="anzhiyufont anzhiyu-icon-tags" />
         <span>文章标签</span>
-      </a>
+      </router-link>
     </div>
 
     <div v-if="isClickOnMusicPlayer" class="rightMenu-group rightMenu-line">
@@ -115,8 +135,17 @@ import { useSnackbar } from "@/composables/useSnackbar";
 import { useUiStore } from "@/store/modules/uiStore";
 import { useSiteConfigStore } from "@/store/modules/siteConfig";
 import { storeToRefs } from "pinia";
-import gsap from "gsap";
 import IconifyIconOffline from "@/components/ReIcon/src/iconifyIconOffline";
+
+// 动态导入 GSAP，减少首屏加载体积
+let gsapInstance: typeof import("gsap").gsap | null = null;
+const loadGsap = async () => {
+  if (!gsapInstance) {
+    const { gsap } = await import("gsap");
+    gsapInstance = gsap;
+  }
+  return gsapInstance;
+};
 
 const rightMenuRef = ref<HTMLElement | null>(null);
 const isVisible = ref(false);
@@ -127,6 +156,7 @@ const hasCommentSection = ref(false);
 const isClickOnMusicPlayer = ref(false);
 const transformOrigin = ref("top left");
 const musicIsPlaying = ref(false);
+const isTextInPostDetailContent = ref(false);
 
 const router = useRouter();
 const route = useRoute();
@@ -157,6 +187,11 @@ const handleContextMenu = (event: MouseEvent) => {
     return;
   }
 
+  // 文档详情页面使用浏览器默认右键菜单
+  if (route.path.startsWith("/doc/")) {
+    return;
+  }
+
   // 仅在桌面端设备生效
   if (window.innerWidth < 768) return;
 
@@ -181,8 +216,25 @@ const handleContextMenu = (event: MouseEvent) => {
   // 修改：在菜单显示时就捕获选中的文本
   if (isTextSelected.value && selection) {
     capturedText.value = selection.toString();
+
+    // 检查选中的文本是否在 post-detail-content 中
+    const range = selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
+    if (range) {
+      const container = range.commonAncestorContainer;
+      const targetElement =
+        container.nodeType === Node.TEXT_NODE
+          ? container.parentElement
+          : (container as HTMLElement);
+
+      // 检查是否在 post-detail-content 中
+      const postDetailContent = targetElement?.closest(".post-detail-content");
+      isTextInPostDetailContent.value = !!postDetailContent;
+    } else {
+      isTextInPostDetailContent.value = false;
+    }
   } else {
     capturedText.value = "";
+    isTextInPostDetailContent.value = false;
   }
 
   // 初始设置菜单位置
@@ -190,11 +242,12 @@ const handleContextMenu = (event: MouseEvent) => {
   position.y = event.clientY;
   isVisible.value = true;
 
-  nextTick(() => {
+  nextTick(async () => {
     // 调整菜单位置以避免超出窗口边界
     adjustMenuPosition();
 
-    // GSAP 动画
+    // GSAP 动画 - 动态加载
+    const gsap = await loadGsap();
     gsap.fromTo(
       rightMenuRef.value,
       { scale: 0.9, opacity: 0, y: -10 },
@@ -273,17 +326,22 @@ const adjustMenuPosition = () => {
   );
 };
 
-const hideMenu = () => {
+const hideMenu = async () => {
   if (isVisible.value) {
-    gsap.to(rightMenuRef.value, {
-      scale: 0.9,
-      opacity: 0,
-      duration: 0.1,
-      ease: "power1.in",
-      onComplete: () => {
-        isVisible.value = false;
-      }
-    });
+    // 如果 GSAP 已加载，使用动画；否则直接隐藏
+    if (gsapInstance) {
+      gsapInstance.to(rightMenuRef.value, {
+        scale: 0.9,
+        opacity: 0,
+        duration: 0.1,
+        ease: "power1.in",
+        onComplete: () => {
+          isVisible.value = false;
+        }
+      });
+    } else {
+      isVisible.value = false;
+    }
   }
 };
 
@@ -352,6 +410,21 @@ const searchLocal = () => {
     window.dispatchEvent(
       new CustomEvent("frontend-open-search", { detail: { keyword: text } })
     );
+  }
+  hideMenu();
+};
+
+/**
+ * 引用到评论
+ */
+const quoteToComment = () => {
+  const text = capturedText.value;
+  if (text) {
+    // 通过全局事件通知文章详情页
+    window.dispatchEvent(
+      new CustomEvent("quote-text-to-comment", { detail: { quoteText: text } })
+    );
+    showSnackbar("已引用到评论");
   }
   hideMenu();
 };

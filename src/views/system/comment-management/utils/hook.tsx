@@ -3,15 +3,14 @@
  * @Author: 安知鱼
  */
 
-import dayjs from "dayjs";
+import { formatToChina } from "@/utils/dayjs";
 import { message } from "@/utils/message";
 import {
   getAdminComments,
   pinAdminComment,
   updateAdminCommentStatus,
   deleteAdminComments,
-  createPublicComment,
-  updateAdminComment
+  createPublicComment
 } from "@/api/comment";
 import type {
   AdminComment,
@@ -96,10 +95,21 @@ export function useCommentManagement() {
   // 获取 Gravatar URL
   const getGravatarUrl = (emailMD5: string) => {
     const config = siteConfigStore.getSiteConfig;
-    let baseUrl = (config.GRAVATAR_URL || "https://cravatar.cn") + "/avatar";
+    const gravatarUrl = config.GRAVATAR_URL || "https://cravatar.cn";
     const defaultType = config.DEFAULT_GRAVATAR_TYPE || "identicon";
-    baseUrl = baseUrl.replace(/\/+$/, "");
-    return `${baseUrl}/${emailMD5 || ""}?d=${defaultType}&s=80`;
+
+    try {
+      const url = new URL(gravatarUrl);
+      url.pathname =
+        url.pathname.replace(/\/+$/, "") + `/avatar/${emailMD5 || ""}`;
+      url.searchParams.set("d", defaultType);
+      url.searchParams.set("s", "80");
+      return url.toString();
+    } catch {
+      // URL 解析失败，使用简单拼接
+      const baseUrl = gravatarUrl.replace(/\/+$/, "");
+      return `${baseUrl}/avatar/${emailMD5 || ""}?d=${defaultType}&s=80`;
+    }
   };
 
   // 获取头像 URL
@@ -109,23 +119,35 @@ export function useCommentManagement() {
       return comment.avatar_url;
     }
 
-    if (!comment.nickname || !comment.email_md5) {
-      return getGravatarUrl(comment.email_md5);
-    }
-    const isQQ = /^[1-9]\d{4,10}$/.test(comment.nickname.trim());
-    if (isQQ) {
-      const qqEmailMd5 = md5(`${comment.nickname.trim()}@qq.com`).toLowerCase();
-      if (comment.email_md5.toLowerCase() === qqEmailMd5) {
-        return `https://thirdqq.qlogo.cn/g?b=sdk&nk=${comment.nickname.trim()}&s=80`;
+    // 检查是否有 QQ 号（后端返回的 qq_number 字段）
+    if (comment.qq_number) {
+      const qqEmailMd5 = md5(`${comment.qq_number}@qq.com`).toLowerCase();
+      if (comment.email_md5?.toLowerCase() === qqEmailMd5) {
+        return `https://thirdqq.qlogo.cn/g?b=sdk&nk=${comment.qq_number}&s=80`;
       }
     }
-    return getGravatarUrl(comment.email_md5);
+
+    // 如果昵称是 QQ 号格式，也尝试获取 QQ 头像
+    if (comment.nickname) {
+      const isQQ = /^[1-9]\d{4,10}$/.test(comment.nickname.trim());
+      if (isQQ) {
+        const qqEmailMd5 = md5(
+          `${comment.nickname.trim()}@qq.com`
+        ).toLowerCase();
+        if (comment.email_md5?.toLowerCase() === qqEmailMd5) {
+          return `https://thirdqq.qlogo.cn/g?b=sdk&nk=${comment.nickname.trim()}&s=80`;
+        }
+      }
+    }
+
+    // 使用 Gravatar
+    return getGravatarUrl(comment.email_md5 || "");
   };
 
   // 格式化日期
   const formatDate = (dateStr: string | null) => {
     if (!dateStr) return "N/A";
-    return dayjs(dateStr).format("YYYY-MM-DD HH:mm:ss");
+    return formatToChina(dateStr);
   };
 
   // 表格列配置
@@ -424,7 +446,7 @@ export function useCommentManagement() {
                 {
                   style: "font-size: 12px; color: var(--anzhiyu-secondtext);"
                 },
-                dayjs(row.created_at).format("YYYY-MM-DD HH:mm")
+                formatToChina(row.created_at, "YYYY-MM-DD HH:mm")
               )
           }
         );
@@ -580,38 +602,23 @@ export function useCommentManagement() {
     });
   }
 
-  // 编辑评论
+  // 编辑评论相关状态
+  const editDialogVisible = ref(false);
+  const editingComment = ref<AdminComment | null>(null);
+
+  // 打开编辑对话框
   function handleEdit(row: AdminComment) {
-    ElMessageBox.prompt(`编辑评论（支持 Markdown 语法）:`, "编辑评论", {
-      inputType: "textarea",
-      inputValue: row.content,
-      confirmButtonText: "保存",
-      cancelButtonText: "取消",
-      inputValidator: (val: string) => {
-        if (!val || val.trim() === "") {
-          return "评论内容不能为空";
-        }
-        if (val.length > 1000) {
-          return "评论内容不能超过 1000 字符";
-        }
-        return true;
-      }
-    })
-      .then(async ({ value }) => {
-        try {
-          const res = await updateAdminComment(row.id, value);
-          const index = dataList.value.findIndex(c => c.id === row.id);
-          if (index !== -1) {
-            dataList.value[index] = res.data;
-          }
-          message("编辑成功", { type: "success" });
-        } catch {
-          message("编辑失败，请稍后重试", { type: "error" });
-        }
-      })
-      .catch(() => {
-        message("已取消编辑", { type: "info" });
-      });
+    editingComment.value = row;
+    editDialogVisible.value = true;
+  }
+
+  // 编辑成功后的回调
+  function handleEditSuccess(updatedComment: AdminComment) {
+    const index = dataList.value.findIndex(c => c.id === updatedComment.id);
+    if (index !== -1) {
+      dataList.value[index] = updatedComment;
+    }
+    message("编辑成功", { type: "success" });
   }
 
   // 回复评论
@@ -691,6 +698,8 @@ export function useCommentManagement() {
     loadingConfig,
     selectedIds,
     statusOptions,
+    editDialogVisible,
+    editingComment,
     onSizeChange,
     onCurrentChange,
     onSearch,
@@ -700,6 +709,7 @@ export function useCommentManagement() {
     handleDelete,
     handleBatchDelete,
     handleEdit,
+    handleEditSuccess,
     handleReply,
     handleSelectionChange,
     getStatusTagType,

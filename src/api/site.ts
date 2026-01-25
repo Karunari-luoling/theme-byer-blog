@@ -117,6 +117,24 @@ export interface TocConfig {
   collapseMode?: string | boolean;
 }
 
+// 文档侧边栏链接项接口
+export interface DocSidebarLinkItem {
+  title: string;
+  link: string;
+  icon: string;
+  external: boolean;
+}
+
+// 文档模式侧边栏配置接口
+export interface DocSidebarConfig {
+  links?: DocSidebarLinkItem[];
+}
+
+// 系列文章配置接口
+export interface SeriesConfig {
+  postCount?: number;
+}
+
 // 侧边栏配置接口
 export interface SidebarConfig {
   author?: AuthorConfig;
@@ -126,7 +144,8 @@ export interface SidebarConfig {
   siteinfo?: SiteInfoConfig;
   custom?: CustomSidebarConfig;
   toc?: TocConfig;
-  seriesPostCount?: number;
+  series?: SeriesConfig;
+  doc?: DocSidebarConfig;
 }
 
 export type SiteConfig = {

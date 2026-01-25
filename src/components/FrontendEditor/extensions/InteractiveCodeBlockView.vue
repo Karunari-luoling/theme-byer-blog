@@ -70,6 +70,7 @@
 import { ref, computed, nextTick } from "vue";
 import { NodeViewWrapper } from "@tiptap/vue-3";
 import { useSnackbar } from "@/composables/useSnackbar";
+import { useSiteConfigStore } from "@/store/modules/siteConfig";
 import hljs from "highlight.js";
 import AnDialog from "@/components/AnDialog/index.vue";
 
@@ -81,8 +82,14 @@ const props = defineProps<{
 }>();
 
 const { showSnackbar } = useSnackbar();
+const siteConfigStore = useSiteConfigStore();
 
 const codeBlockRef = ref<HTMLDivElement | null>(null);
+
+// Mac 样式配置
+const macStyle = computed(
+  () => siteConfigStore.getSiteConfig?.post?.code_block?.mac_style || false
+);
 
 // 编辑弹窗状态
 const showEditDialog = ref(false);
@@ -393,9 +400,23 @@ const generateHTML = (code: string, language: string): string => {
 
     // 🔧 不使用 DOM 操作，直接用字符串构建 HTML
     // 原因：通过 DOM 属性传递 HTML 时，浏览器会规范化属性值，导致换行符丢失
+
+    // 构建 Mac 圆点 HTML（如果启用）
+    const macDotsHtml = macStyle.value
+      ? `<div class="mac-dots">
+          <span class="mac-dot red"></span>
+          <span class="mac-dot yellow"></span>
+          <span class="mac-dot green"></span>
+        </div>`
+      : "";
+
+    // 根据是否启用 Mac 样式添加 class
+    const headClass = macStyle.value ? " has-mac-dots" : "";
+
     const result = `<details${dataLine} class="md-editor-code is-collapsible is-collapsed"${open}>
-          <summary class="md-editor-code-head">
+          <summary class="md-editor-code-head${headClass}">
         <i class="anzhiyufont anzhiyu-icon-angle-down expand" onclick="event.preventDefault(); this.closest('details').open = !this.closest('details').open;"></i>
+        ${macDotsHtml}
         <div class="code-lang">${language || "plaintext"}</div>
         <i class="anzhiyufont anzhiyu-icon-paste copy-button" onclick="event.preventDefault(); event.stopPropagation(); const code = this.closest('.md-editor-code').querySelector('pre code'); if(code && window.__markdownEditorCopyHandler) { window.__markdownEditorCopyHandler(code); }"></i>
       </summary>

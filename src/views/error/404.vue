@@ -2,7 +2,7 @@
  * @Description: 404 页面
  * @Author: 安知鱼
  * @Date: 2025-06-15 11:31:00
- * @LastEditTime: 2025-12-08 13:17:58
+ * @LastEditTime: 2026-01-12 15:38:51
  * @LastEditors: 安知鱼
 -->
 <script setup lang="ts">
@@ -64,8 +64,13 @@ const formatArticleDate = (date: string) => {
 };
 
 // 跳转到文章
-const goToArticle = (id: string) => {
-  router.push(`/posts/${id}`);
+const goToArticle = (article: Article) => {
+  // 如果是文档类型，跳转到文档详情页
+  if (article.is_doc || article.doc_series_id) {
+    router.push(`/doc/${article.id}`);
+  } else {
+    router.push(`/posts/${article.id}`);
+  }
 };
 
 onMounted(() => {
@@ -109,7 +114,7 @@ onMounted(() => {
             v-else
             :key="article.id"
             class="aside-list-item"
-            @click="goToArticle(article.id)"
+            @click="goToArticle(article)"
           >
             <div class="thumbnail">
               <img
@@ -211,7 +216,7 @@ onMounted(() => {
           display: inline-flex;
           align-items: center;
           gap: 0.5rem;
-          padding: 0.875rem 2rem;
+          padding: 0.375rem 1.8rem;
           font-size: 1rem;
           font-weight: 500;
           color: #fff;

@@ -108,6 +108,8 @@ defineOptions({
 
 const props = defineProps<{
   modelValue: boolean;
+  /** 跳过登录后的页面跳转（用于弹窗登录场景，由父组件控制跳转） */
+  skipNavigation?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -210,11 +212,14 @@ const startPolling = () => {
             // 初始化路由
             await initRouter();
 
-            // 延迟关闭弹窗并跳转
+            // 延迟关闭弹窗
             setTimeout(() => {
               emit("success");
               handleClose();
-              router.push(getTopMenu(true).path);
+              // 如果不跳过导航（页面登录场景），则跳转到管理面板
+              if (!props.skipNavigation) {
+                router.push(getTopMenu(true).path);
+              }
             }, 1000);
           }
         }

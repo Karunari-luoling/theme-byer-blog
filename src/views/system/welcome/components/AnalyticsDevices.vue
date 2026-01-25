@@ -128,4 +128,3 @@ watch(
 <template>
   <EchartsUI ref="chartRef" height="280px" />
 </template>
-

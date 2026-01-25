@@ -3,7 +3,7 @@
  * @Author: 安知鱼
  */
 
-import dayjs from "dayjs";
+import { formatToChina } from "@/utils/dayjs";
 import { message } from "@/utils/message";
 import {
   getAdminEssayList,
@@ -296,7 +296,7 @@ export function useEssayManagement() {
           {
             style: "font-size: 12px; color: var(--anzhiyu-secondtext);"
           },
-          dayjs(row.created_at).format("YYYY-MM-DD HH:mm:ss")
+          formatToChina(row.created_at)
         );
       }
     },
@@ -461,7 +461,7 @@ export function useEssayManagement() {
 
   // 格式化日期
   function formatDate(date: string) {
-    return dayjs(date).format("YYYY-MM-DD HH:mm:ss");
+    return formatToChina(date);
   }
 
   onMounted(() => {

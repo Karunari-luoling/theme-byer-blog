@@ -3,7 +3,7 @@
  * @Author: 安知鱼
  */
 
-import dayjs from "dayjs";
+import { formatToChina } from "@/utils/dayjs";
 import { message } from "@/utils/message";
 import {
   getOrderListForAdmin,
@@ -17,7 +17,7 @@ import { ElTag, ElMessageBox, ElTooltip } from "element-plus";
 
 // 扩展搜索参数类型
 interface ExtendedSearchParams extends OrderListParams {
-  order_type?: "article" | "share" | "";
+  order_type?: "ARTICLE" | "SHARE" | "PRODUCT" | "MEMBERSHIP" | "";
   dateRange?: string[];
 }
 
@@ -64,8 +64,10 @@ export function useOrderManagement() {
   // 订单类型选项
   const orderTypeOptions = [
     { value: "", label: "全部类型" },
-    { value: "article", label: "文章购买", type: "success" },
-    { value: "share", label: "分享购买", type: "primary" }
+    { value: "ARTICLE", label: "文章购买", type: "success" },
+    { value: "SHARE", label: "分享购买", type: "primary" },
+    { value: "PRODUCT", label: "商品购买", type: "warning" },
+    { value: "MEMBERSHIP", label: "会员订阅", type: "danger" }
   ];
 
   // 获取状态标签类型
@@ -110,16 +112,24 @@ export function useOrderManagement() {
 
   // 获取订单类型标签类型
   const getOrderTypeTagType = (order: AdminOrderInfo): TagType => {
-    if (order.share_id) return "primary";
-    if (order.article_id) return "success";
-    return "info";
+    const typeMap: Record<string, TagType> = {
+      ARTICLE: "success",
+      SHARE: "primary",
+      PRODUCT: "warning",
+      MEMBERSHIP: "danger"
+    };
+    return typeMap[order.order_type] || "info";
   };
 
   // 获取订单类型文本
   const getOrderTypeText = (order: AdminOrderInfo): string => {
-    if (order.share_id) return "分享购买";
-    if (order.article_id) return "文章购买";
-    return "未知类型";
+    const typeMap: Record<string, string> = {
+      ARTICLE: "文章购买",
+      SHARE: "分享购买",
+      PRODUCT: "商品购买",
+      MEMBERSHIP: "会员订阅"
+    };
+    return typeMap[order.order_type] || "未知类型";
   };
 
   // 格式化金额
@@ -319,7 +329,7 @@ export function useOrderManagement() {
                 style:
                   "display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: var(--anzhiyu-secondtext);"
               },
-              ["创建: ", dayjs(row.created_at).format("YYYY-MM-DD HH:mm")]
+              ["创建: ", formatToChina(row.created_at, "YYYY-MM-DD HH:mm")]
             ),
             isValidPayTime
               ? h(
@@ -328,7 +338,7 @@ export function useOrderManagement() {
                     style:
                       "display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: var(--anzhiyu-green);"
                   },
-                  ["支付: ", dayjs(row.pay_time).format("YYYY-MM-DD HH:mm")]
+                  ["支付: ", formatToChina(row.pay_time, "YYYY-MM-DD HH:mm")]
                 )
               : h(
                   "span",
@@ -430,14 +440,7 @@ export function useOrderManagement() {
 
         // 客户端过滤订单类型
         if (form.order_type) {
-          orders = orders.filter(order => {
-            if (form.order_type === "article") {
-              return order.article_id && !order.share_id;
-            } else if (form.order_type === "share") {
-              return order.share_id && !order.article_id;
-            }
-            return true;
-          });
+          orders = orders.filter(order => order.order_type === form.order_type);
         }
 
         dataList.value = orders;

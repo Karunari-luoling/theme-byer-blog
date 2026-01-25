@@ -2,7 +2,7 @@
  * @Description: 版本管理工具 - 从 API 获取真实部署版本信息
  * @Author: 安知鱼
  * @Date: 2025-09-30
- * @LastEditTime: 2025-10-11 19:45:21
+ * @LastEditTime: 2026-01-17 17:00:00
  * @LastEditors: 安知鱼
  */
 
@@ -14,10 +14,79 @@ export interface VersionInfo {
   date?: string;
   go_version?: string;
   timestamp?: number; // 缓存时间戳
+  buildTime?: number; // 构建时间戳，用于检测版本更新
 }
 
 const VERSION_CACHE_KEY = "anheyu_pro_version";
+const BUILD_TIME_KEY = "anheyu_pro_build_time";
 const CACHE_DURATION = 1 * 60 * 60 * 1000; // 1小时缓存（确保版本更新及时）
+
+// 模块级变量：标记当前会话是否已经检查过构建版本
+let hasCheckedBuildInSession = false;
+
+/**
+ * 从静态的 /version.json 获取构建时间戳
+ * 用于检测是否有新版本部署
+ */
+const fetchBuildTime = async (): Promise<number | null> => {
+  try {
+    const response = await fetch("/version.json", {
+      method: "GET",
+      cache: "no-cache" // 禁用缓存，确保获取最新文件
+    });
+    if (response.ok) {
+      const data = await response.json();
+      return data.buildTime || null;
+    }
+  } catch (error) {
+    console.debug("无法获取 version.json:", error);
+  }
+  return null;
+};
+
+/**
+ * 检查是否有新版本部署（通过比较构建时间戳）
+ * 如果有新版本，自动清除缓存并强制刷新页面
+ * 注意：每个页面会话只检查一次，避免重复请求
+ */
+const checkAndClearCacheIfNewBuild = async (): Promise<boolean> => {
+  // 如果当前会话已经检查过，直接返回
+  if (hasCheckedBuildInSession) {
+    return false;
+  }
+
+  try {
+    hasCheckedBuildInSession = true; // 标记已检查
+
+    const newBuildTime = await fetchBuildTime();
+    if (!newBuildTime) return false;
+
+    const cachedBuildTime = localStorage.getItem(BUILD_TIME_KEY);
+    const oldBuildTime = cachedBuildTime ? Number(cachedBuildTime) : null;
+
+    // 如果构建时间戳变化了，说明有新版本部署
+    if (oldBuildTime && newBuildTime !== oldBuildTime) {
+      console.log("🔄 检测到新版本部署，正在清除缓存并刷新页面...");
+      localStorage.removeItem(VERSION_CACHE_KEY);
+      localStorage.setItem(BUILD_TIME_KEY, String(newBuildTime));
+
+      // 强制硬刷新页面，确保浏览器重新加载所有静态资源
+      // 避免旧 JS 文件引用已删除的 chunk 导致 404
+      window.location.reload();
+      return true;
+    }
+
+    // 首次访问或构建时间戳未变化，更新存储的构建时间戳
+    if (!oldBuildTime) {
+      localStorage.setItem(BUILD_TIME_KEY, String(newBuildTime));
+    }
+
+    return false;
+  } catch (error) {
+    console.debug("检查构建版本失败:", error);
+    return false;
+  }
+};
 
 /**
  * 从 /api/pro/version 接口获取当前部署的应用版本信息
@@ -118,6 +187,7 @@ const setCachedVersion = (versionInfo: VersionInfo): void => {
 export const clearVersionCache = (): void => {
   try {
     localStorage.removeItem(VERSION_CACHE_KEY);
+    localStorage.removeItem(BUILD_TIME_KEY);
     console.log("✅ 版本缓存已清除");
   } catch (error) {
     console.error("清除版本缓存失败:", error);
@@ -131,8 +201,11 @@ export const clearVersionCache = (): void => {
 export const getVersionInfo = async (
   forceRefresh = false
 ): Promise<VersionInfo> => {
-  // 如果不强制刷新，先尝试从缓存获取
-  if (!forceRefresh) {
+  // 检查是否有新版本部署，如果有则自动清除缓存
+  const hasNewBuild = await checkAndClearCacheIfNewBuild();
+
+  // 如果检测到新构建或强制刷新，则跳过缓存
+  if (!forceRefresh && !hasNewBuild) {
     const cached = getCachedVersion();
     if (cached) {
       console.debug("📦 使用缓存的版本信息:", cached.version);

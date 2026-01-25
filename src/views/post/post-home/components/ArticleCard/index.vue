@@ -1,17 +1,27 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, type PropType, computed } from "vue";
-import type { Article } from "@/api/post/type";
+import { ref, onMounted, type PropType, computed } from "vue";
+import type { FeedItem } from "@/api/post/type";
 import { useArticleStore } from "@/store/modules/articleStore";
+import { useSiteConfigStore } from "@/store/modules/siteConfig";
 import { formatRelativeTime } from "@/utils/format";
 import { useRouter } from "vue-router";
-import { initLazyLoad, destroyLazyLoad } from "@/utils/lazyload";
+import ShoppingBagIcon from "@iconify-icons/ri/shopping-bag-fill";
+import IconifyIconOffline from "@/components/ReIcon/src/iconifyIconOffline";
 
 const articleStore = useArticleStore();
+const siteConfigStore = useSiteConfigStore();
 const router = useRouter();
+
+// 是否启用主色调标签样式
+const enablePrimaryColorTag = computed(() => {
+  const postConfig = siteConfigStore.getSiteConfig?.post?.default;
+  const value = postConfig?.enable_primary_color_tag;
+  return value === true || value === "true";
+});
 
 const props = defineProps({
   article: {
-    type: Object as PropType<Article>,
+    type: Object as PropType<FeedItem>,
     required: true
   },
   isDoubleColumn: {
@@ -27,12 +37,53 @@ const props = defineProps({
 const READ_ARTICLES_KEY = "read_articles";
 const isRead = ref(false);
 
+// 判断是否为商品类型
+const isProduct = computed(() => props.article.item_type === "product");
+
 const coverUrl = computed(() => {
   return props.article.cover_url || articleStore.defaultCover;
 });
 
-// Observer 实例
-let observer: IntersectionObserver | null = null;
+// 获取文章主色调，用于分类标签背景色
+const primaryColor = computed(() => {
+  return props.article.primary_color || "var(--anzhiyu-main)";
+});
+
+// 根据背景色计算合适的文字颜色
+const getContrastColor = (hexColor: string): string => {
+  // 如果是 CSS 变量，返回白色
+  if (hexColor.startsWith("var(")) return "#ffffff";
+  // 移除 # 号
+  const hex = hexColor.replace("#", "");
+  const r = parseInt(hex.substring(0, 2), 16);
+  const g = parseInt(hex.substring(2, 4), 16);
+  const b = parseInt(hex.substring(4, 6), 16);
+  // 计算亮度 (0-255)
+  const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+  // 阈值设为 180，只有非常浅的颜色才使用黑色文字，大多数颜色使用白色文字
+  return brightness > 180 ? "#333333" : "#ffffff";
+};
+
+const categoryTextColor = computed(() => {
+  return getContrastColor(primaryColor.value);
+});
+
+// 格式化价格（分转元）
+const formatPrice = (price?: number) => {
+  if (!price) return "0.00";
+  return (price / 100).toFixed(2);
+};
+
+// 价格显示
+const priceDisplay = computed(() => {
+  if (!isProduct.value) return "";
+  const { min_price, max_price } = props.article;
+  if (!min_price) return "免费";
+  if (!max_price || min_price === max_price) {
+    return `¥${formatPrice(min_price)}`;
+  }
+  return `¥${formatPrice(min_price)} - ¥${formatPrice(max_price)}`;
+});
 
 onMounted(() => {
   // 检查已读状态
@@ -44,21 +95,12 @@ onMounted(() => {
     }
   }
 
-  // 初始化懒加载
-  observer = initLazyLoad(document, {
-    selector: "img[data-src]",
-    threshold: 0.1,
-    rootMargin: "100px",
-    loadedClass: "lazy-loaded",
-    loadingClass: "lazy-loading"
-  });
+  // 注意：懒加载已由父组件 (HomeTop 或 post-home) 统一管理
+  // 不再在每个 ArticleCard 中重复创建 IntersectionObserver
 });
 
-onUnmounted(() => {
-  destroyLazyLoad(observer);
-});
-
-const goPost = (id: string) => {
+const goPost = () => {
+  const id = props.article.id;
   const readArticlesStr = localStorage.getItem(READ_ARTICLES_KEY);
   let readArticles: string[] = [];
   if (readArticlesStr) {
@@ -69,7 +111,15 @@ const goPost = (id: string) => {
     localStorage.setItem(READ_ARTICLES_KEY, JSON.stringify(readArticles));
     isRead.value = true;
   }
-  router.push({ path: `/posts/${id}` });
+
+  // 根据类型跳转到不同页面
+  if (isProduct.value) {
+    router.push({ path: `/products/${id}` });
+  } else if (props.article.is_doc || props.article.doc_series_id) {
+    router.push({ path: `/doc/${id}` });
+  } else {
+    router.push({ path: `/posts/${id}` });
+  }
 };
 
 // 跳转到分类页面的方法
@@ -86,8 +136,11 @@ const goToTagPage = (tagName: string) => {
 <template>
   <div
     class="recent-post-item"
-    :class="{ 'double-column-item': isDoubleColumn }"
-    @click="goPost(article.id)"
+    :class="{
+      'double-column-item': isDoubleColumn,
+      'is-product': isProduct
+    }"
+    @click="goPost()"
   >
     <div class="post_cover">
       <div :title="article.title" class="w-full h-full">
@@ -100,55 +153,160 @@ const goToTagPage = (tagName: string) => {
     </div>
     <div class="recent-post-info">
       <div class="recent-post-info-top">
-        <div class="recent-post-info-top-tips">
-          <span v-if="article.pin_sort > 0" class="article-meta sticky-warp">
+        <!-- 新版标签样式：启用主色调标签 -->
+        <div v-if="enablePrimaryColorTag" class="recent-post-info-top-tips">
+          <!-- 商品标签 -->
+          <span v-if="isProduct" class="meta-tag product-tag">
+            <IconifyIconOffline :icon="ShoppingBagIcon" class="tag-icon" />
+            <span>商品</span>
+          </span>
+
+          <!-- 分类标签：使用文章主色调 -->
+          <template v-if="!isProduct">
+            <span
+              v-for="category in article.post_categories || []"
+              :key="category.id"
+              class="meta-tag category-tag"
+              :style="{
+                backgroundColor: primaryColor,
+                color: categoryTextColor
+              }"
+              @click.stop="goToCategoryPage(category.name)"
+            >
+              {{ category.name }}
+            </span>
+          </template>
+
+          <!-- 置顶标签 -->
+          <span
+            v-if="!isProduct && article.pin_sort && article.pin_sort > 0"
+            class="meta-tag sticky-tag"
+          >
+            <i class="anzhiyufont anzhiyu-icon-thumbtack" />
+            <span>置顶</span>
+          </span>
+
+          <!-- 多人互动标签 -->
+          <span
+            v-if="
+              !isProduct && article.comment_count && article.comment_count > 10
+            "
+            class="meta-tag hot-tag"
+          >
+            <i class="anzhiyufont anzhiyu-icon-fire" />
+            <span>多人互动</span>
+          </span>
+
+          <!-- 文档标签 -->
+          <span
+            v-if="!isProduct && (article.is_doc || article.doc_series_id)"
+            class="meta-tag doc-tag"
+          >
+            <i class="anzhiyufont anzhiyu-icon-book" />
+            <span>文档</span>
+          </span>
+
+          <!-- 最新标签 -->
+          <span v-if="isNewest && !isProduct" class="meta-tag newest-tag"
+            >最新</span
+          >
+
+          <!-- 未读标签 -->
+          <span v-if="!isRead && !isProduct" class="meta-tag unread-tag"
+            >未读</span
+          >
+        </div>
+
+        <!-- 旧版标签样式：默认样式 -->
+        <div v-else class="recent-post-info-top-tips legacy">
+          <!-- 商品标签 -->
+          <span v-if="isProduct" class="article-meta product-badge">
+            <IconifyIconOffline :icon="ShoppingBagIcon" class="product-icon" />
+            <span>商品</span>
+          </span>
+
+          <!-- 置顶标签 -->
+          <span
+            v-if="!isProduct && article.pin_sort && article.pin_sort > 0"
+            class="article-meta sticky-warp"
+          >
             <i class="sticky anzhiyufont anzhiyu-icon-thumbtack" />
             <span class="sticky">置顶</span>
           </span>
 
+          <!-- 多人互动标签 -->
           <span
-            v-if="article.comment_count > 10"
+            v-if="
+              !isProduct && article.comment_count && article.comment_count > 10
+            "
             class="article-meta hot-interaction-warp"
           >
             <i class="hot-interaction anzhiyufont anzhiyu-icon-fire" />
             <span class="hot-interaction">多人互动</span>
           </span>
 
+          <!-- 文档标签 -->
           <span
-            v-for="category in article.post_categories"
+            v-if="!isProduct && (article.is_doc || article.doc_series_id)"
+            class="article-meta doc-badge"
+          >
+            <i class="anzhiyufont anzhiyu-icon-book" />
+            <span>文档</span>
+          </span>
+
+          <!-- 分类标签 -->
+          <span
+            v-for="category in article.post_categories || []"
             :key="category.id"
             class="category-tip"
             @click.stop="goToCategoryPage(category.name)"
           >
             {{ category.name }}
           </span>
-          <span v-if="!isRead" class="unvisited-post" :title="article.title"
-            >未读</span
+
+          <!-- 未读/最新标签 -->
+          <span
+            v-if="!isRead && !isProduct"
+            class="unvisited-post"
+            :title="article.title"
           >
-          <span v-if="isNewest" class="newPost">最新</span>
+            未读
+          </span>
+          <span v-if="isNewest && !isProduct" class="newPost">最新</span>
         </div>
+
         <h2 class="article-title" :title="article.title">
           {{ article.title }}
         </h2>
       </div>
       <div class="article-meta-wrap">
-        <span class="article-meta tags">
-          <span
-            v-for="tag in article.post_tags"
-            :key="tag.id"
-            class="article-meta__tags"
-            @click.stop="goToTagPage(tag.name)"
-          >
-            <span>
-              <i class="anzhiyufont anzhiyu-icon-hashtag" />{{ tag.name }}
+        <!-- 商品显示价格和销量 -->
+        <template v-if="isProduct">
+          <span class="product-price">{{ priceDisplay }}</span>
+          <span v-if="article.total_sales" class="product-sales">
+            已售 {{ article.total_sales }}
+          </span>
+        </template>
+        <!-- 文章显示标签和时间 -->
+        <template v-else>
+          <span class="article-meta tags">
+            <span
+              v-for="tag in article.post_tags || []"
+              :key="tag.id"
+              class="article-meta__tags"
+              @click.stop="goToTagPage(tag.name)"
+            >
+              <span>
+                <i class="anzhiyufont anzhiyu-icon-hashtag" />{{ tag.name }}
+              </span>
             </span>
           </span>
-        </span>
-        <span class="post-meta-date">
-          <time :datetime="article.created_at">{{
-            formatRelativeTime(article.created_at)
-          }}</time>
-        </span>
+          <span class="post-meta-date">
+            <time :datetime="article.created_at">{{
+              formatRelativeTime(article.created_at)
+            }}</time>
+          </span>
+        </template>
       </div>
     </div>
   </div>
@@ -193,15 +351,6 @@ const goToTagPage = (tagName: string) => {
   &.double-column-item {
     height: 18em;
     margin: 0;
-  }
-
-  .unvisited-post,
-  .newPost {
-    position: relative;
-    display: inline;
-    margin-right: 4px;
-    font-size: 0.75rem;
-    color: var(--anzhiyu-secondtext);
   }
 
   &:active {
@@ -342,55 +491,180 @@ const goToTagPage = (tagName: string) => {
   }
 }
 
+// 新版标签容器样式
 .recent-post-info-top-tips {
-  display: block;
-  height: 20px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  min-height: 24px;
   margin-bottom: 0.5rem;
   overflow: hidden;
-  font-size: 0.75rem;
-  color: var(--anzhiyu-secondtext);
-  text-overflow: ellipsis;
-  white-space: nowrap;
 
-  &:has(.sticky-warp) {
-    transform: translateX(-4px);
-  }
-
-  .sticky-warp {
-    display: inline-flex;
-    align-items: center;
-    margin-right: 8px;
-    color: #ff5722;
-
-    .sticky {
-      margin-left: 4px;
-      font-size: 0.75rem;
-    }
-  }
-
-  .hot-interaction-warp {
-    display: inline-flex;
-    align-items: center;
-    margin-right: 8px;
-    color: var(--anzhiyu-red);
-
-    .hot-interaction {
-      margin-left: 4px;
-      font-size: 0.75rem;
-    }
-  }
-
-  .category-tip {
-    display: inline;
-    margin-right: 4px;
+  // 旧版标签容器样式
+  &.legacy {
+    display: block;
+    height: 20px;
+    gap: 0;
     font-size: 0.75rem;
     color: var(--anzhiyu-secondtext);
-    transition: color 0.3s;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 
-    &:hover {
-      color: var(--anzhiyu-main);
+    &:has(.sticky-warp) {
+      transform: translateX(-4px);
+    }
+
+    .sticky-warp {
+      display: inline-flex;
+      align-items: center;
+      margin-right: 8px;
+      color: #ff5722;
+
+      .sticky {
+        margin-left: 4px;
+        font-size: 0.75rem;
+      }
+    }
+
+    .hot-interaction-warp {
+      display: inline-flex;
+      align-items: center;
+      margin-right: 8px;
+      color: var(--anzhiyu-red);
+
+      i.hot-interaction {
+        font-size: 0.75rem;
+      }
+
+      span.hot-interaction {
+        margin-left: 4px;
+        font-size: 0.75rem;
+      }
+    }
+
+    .doc-badge {
+      display: inline-flex;
+      align-items: center;
+      margin-right: 8px;
+      color: var(--anzhiyu-theme);
+
+      i {
+        font-size: 0.75rem;
+        margin-right: 4px;
+      }
+
+      span {
+        font-size: 0.75rem;
+      }
+    }
+
+    .product-badge {
+      display: inline-flex;
+      align-items: center;
+      margin-right: 8px;
+      color: var(--anzhiyu-theme);
+
+      .product-icon {
+        font-size: 0.75rem;
+        margin-right: 4px;
+      }
+
+      span {
+        font-size: 0.75rem;
+      }
+    }
+
+    .category-tip {
+      display: inline;
+      margin-right: 4px;
+      font-size: 0.75rem;
+      color: var(--anzhiyu-secondtext);
+      transition: color 0.3s;
+
+      &:hover {
+        color: var(--anzhiyu-main);
+      }
+    }
+
+    .unvisited-post,
+    .newPost {
+      position: relative;
+      display: inline;
+      margin-right: 4px;
+      font-size: 0.75rem;
+      color: var(--anzhiyu-secondtext);
     }
   }
+}
+
+// 统一的标签基础样式
+.meta-tag {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  padding: 3px 10px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  line-height: 1.2;
+  white-space: nowrap;
+  border-radius: 20px;
+  transition: all 0.2s ease;
+
+  i {
+    font-size: 0.7rem;
+  }
+
+  .tag-icon {
+    width: 12px;
+    height: 12px;
+  }
+}
+
+// 分类标签 - 使用文章主色调
+.category-tag {
+  cursor: pointer;
+
+  &:hover {
+    filter: brightness(0.9);
+    transform: translateY(-1px);
+  }
+}
+
+// 置顶标签 - 橙色
+.sticky-tag {
+  color: #ffffff;
+  background-color: #ff5722;
+}
+
+// 多人互动标签 - 红色
+.hot-tag {
+  color: #ffffff;
+  background-color: #f56c6c;
+}
+
+// 文档标签 - 蓝紫色
+.doc-tag {
+  color: #ffffff;
+  background-color: #667eea;
+}
+
+// 商品标签 - 紫色
+.product-tag {
+  color: #ffffff;
+  background-color: #a855f7;
+}
+
+// 最新标签 - 绿色
+.newest-tag {
+  color: #ffffff;
+  background-color: #10ac84;
+}
+
+// 未读标签 - 灰色透明
+.unread-tag {
+  color: var(--anzhiyu-secondtext);
+  background-color: var(--anzhiyu-secondbg);
 }
 
 .article-meta-wrap {
@@ -401,6 +675,17 @@ const goToTagPage = (tagName: string) => {
   width: 100%;
   font-size: 0.8rem;
   color: var(--anzhiyu-secondtext);
+
+  .product-price {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #f56c6c;
+  }
+
+  .product-sales {
+    font-size: 0.8rem;
+    color: var(--anzhiyu-secondtext);
+  }
 
   .tags {
     display: block;
@@ -475,6 +760,15 @@ const goToTagPage = (tagName: string) => {
         font-size: 1.2rem;
       }
     }
+  }
+
+  .recent-post-info-top-tips {
+    gap: 4px;
+  }
+
+  .meta-tag {
+    padding: 2px 8px;
+    font-size: 0.65rem;
   }
 }
 </style>

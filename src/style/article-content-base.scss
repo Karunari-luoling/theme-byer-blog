@@ -279,9 +279,51 @@
       .expand {
         position: absolute;
         top: 50%;
-        padding: 0.57rem 0.7rem;
+        left: 0;
+        padding: 0.57rem 0.5rem;
         transition: transform 0.3s;
         transform: translate(0, -47%) rotate(-90deg);
+        z-index: 2;
+      }
+
+      .mac-dots {
+        position: absolute;
+        left: 2.2rem;
+        top: 50%;
+        transform: translateY(-50%);
+        display: flex;
+        gap: 6px;
+        z-index: 1;
+
+        .mac-dot {
+          width: 12px;
+          height: 12px;
+          border-radius: 50%;
+          transition: all 0.3s ease;
+
+          &.red {
+            background: linear-gradient(135deg, #ff6159 0%, #ff5f52 100%);
+            box-shadow: 0 1px 3px rgba(255, 97, 89, 0.4);
+          }
+
+          &.yellow {
+            background: linear-gradient(135deg, #ffbd2e 0%, #ffbb28 100%);
+            box-shadow: 0 1px 3px rgba(255, 189, 46, 0.4);
+          }
+
+          &.green {
+            background: linear-gradient(135deg, #28ca42 0%, #27c93f 100%);
+            box-shadow: 0 1px 3px rgba(40, 202, 66, 0.4);
+          }
+        }
+
+        &:hover .mac-dot {
+          transform: scale(1.1);
+        }
+      }
+
+      &.has-mac-dots .code-lang {
+        left: 5.5rem;
       }
 
       .code-lang {
@@ -580,6 +622,7 @@
       height: 1em;
       object-fit: contain;
       border-radius: 2px;
+      margin: 0;
     }
 
     &:hover {
@@ -587,7 +630,6 @@
       border-color: var(--anzhiyu-main-op-deep);
       border-radius: 8px !important;
       box-shadow: var(--anzhiyu-shadow-main);
-      transform: translateY(-2px);
     }
 
     &.btn-blue {
@@ -782,24 +824,6 @@
       grid-template-columns: repeat(6, 1fr);
     }
 
-    // 响应式布局
-    @media screen and (max-width: 768px) {
-      &.btns-cols-4,
-      &.btns-cols-5,
-      &.btns-cols-6 {
-        grid-template-columns: repeat(3, 1fr);
-      }
-    }
-
-    @media screen and (max-width: 500px) {
-      &.btns-cols-3,
-      &.btns-cols-4,
-      &.btns-cols-5,
-      &.btns-cols-6 {
-        grid-template-columns: repeat(2, 1fr);
-      }
-    }
-
     .btn-item {
       display: flex;
       flex-direction: column;
@@ -842,14 +866,19 @@
           transition: all 0.3s ease;
         }
 
-        // Iconify 图标支持
-        .iconify {
-          font-size: 32px;
-          color: var(--anzhiyu-fontcolor);
+        // Iconify 图标支持（SVG 通过 img 加载）
+        .iconify-img {
+          width: 32px;
+          height: 32px;
+          object-fit: contain;
           transition: all 0.3s ease;
+          // 深色模式下反转颜色
+          [data-theme="dark"] & {
+            filter: invert(1) brightness(0.9);
+          }
         }
 
-        img {
+        img:not(.iconify-img) {
           width: 100%;
           height: 100%;
           object-fit: cover;
@@ -897,9 +926,13 @@
           width: 48px;
           height: 48px;
 
-          i,
-          .iconify {
+          i {
             font-size: 24px;
+          }
+
+          .iconify-img {
+            width: 24px;
+            height: 24px;
           }
         }
 
@@ -1042,6 +1075,24 @@
         }
       }
     }
+
+    // 响应式布局
+    @media screen and (max-width: 768px) {
+      &.btns-cols-4,
+      &.btns-cols-5,
+      &.btns-cols-6 {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+
+    @media screen and (max-width: 500px) {
+      &.btns-cols-3,
+      &.btns-cols-4,
+      &.btns-cols-5,
+      &.btns-cols-6 {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
   }
 }
 
@@ -1052,7 +1103,7 @@
     --gallery-ratio: auto;
     display: grid;
     gap: var(--gallery-gap);
-    margin: 0;
+    margin: 10px 0;
 
     // 列数配置
     &.gallery-cols-1 {
@@ -1077,28 +1128,6 @@
 
     &.gallery-cols-6 {
       grid-template-columns: repeat(6, 1fr);
-    }
-
-    // 响应式布局
-    @media screen and (max-width: 768px) {
-      &.gallery-cols-4,
-      &.gallery-cols-5,
-      &.gallery-cols-6 {
-        grid-template-columns: repeat(3, 1fr);
-      }
-    }
-
-    @media screen and (max-width: 500px) {
-      &.gallery-cols-3,
-      &.gallery-cols-4,
-      &.gallery-cols-5,
-      &.gallery-cols-6 {
-        grid-template-columns: repeat(2, 1fr);
-      }
-
-      &.gallery-cols-2 {
-        grid-template-columns: repeat(1, 1fr);
-      }
     }
 
     .gallery-item {
@@ -1176,6 +1205,28 @@
         }
       }
     }
+
+    // 响应式布局
+    @media screen and (max-width: 768px) {
+      &.gallery-cols-4,
+      &.gallery-cols-5,
+      &.gallery-cols-6 {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+
+    @media screen and (max-width: 500px) {
+      &.gallery-cols-3,
+      &.gallery-cols-4,
+      &.gallery-cols-5,
+      &.gallery-cols-6 {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      &.gallery-cols-2 {
+        grid-template-columns: repeat(1, 1fr);
+      }
+    }
   }
 }
 
@@ -1203,22 +1254,6 @@
 
     &.video-gallery-cols-4 {
       grid-template-columns: repeat(4, 1fr);
-    }
-
-    // 响应式布局
-    @media screen and (max-width: 1024px) {
-      &.video-gallery-cols-3,
-      &.video-gallery-cols-4 {
-        grid-template-columns: repeat(2, 1fr);
-      }
-    }
-
-    @media screen and (max-width: 768px) {
-      &.video-gallery-cols-2,
-      &.video-gallery-cols-3,
-      &.video-gallery-cols-4 {
-        grid-template-columns: repeat(1, 1fr);
-      }
     }
 
     .video-gallery-item {
@@ -1324,6 +1359,22 @@
       // 当视频播放时隐藏覆盖层
       .video-gallery-video:not([paused]) ~ .video-gallery-play-overlay {
         opacity: 0;
+      }
+    }
+
+    // 响应式布局
+    @media screen and (max-width: 1024px) {
+      &.video-gallery-cols-3,
+      &.video-gallery-cols-4 {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media screen and (max-width: 768px) {
+      &.video-gallery-cols-2,
+      &.video-gallery-cols-3,
+      &.video-gallery-cols-4 {
+        grid-template-columns: repeat(1, 1fr);
       }
     }
   }
@@ -1516,7 +1567,7 @@
 @mixin list-styles {
   // 基础列表样式
   ol,
-  ul {
+  ul:not(.md-editor-menu):not(.cm-tooltip ul) {
     margin-top: 0.4rem;
     padding: 0 0 0 0.8rem;
     list-style: none;
@@ -1565,7 +1616,7 @@
   }
 
   // 无序列表项样式
-  ul li:not(.tab) {
+  ul li:not(.tab):not(.md-editor-menu-item):not(.cm-tooltip li) {
     position: relative;
     margin: 0.3rem 0;
     font-size: 17px;
@@ -1705,7 +1756,9 @@
     }
   }
 
-  code {
+  // 行内代码样式 - 只应用于非代码块内的 code 标签
+  // 使用 :not(pre) > code 避免影响 pre code.hljs 代码块样式
+  :not(pre) > code {
     padding: 0.2rem 0.4rem;
     padding: 2px 4px;
     margin: 0 4px;

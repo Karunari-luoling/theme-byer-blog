@@ -2,7 +2,7 @@
  * @Description:
  * @Author: 安知鱼
  * @Date: 2025-08-21 17:48:59
- * @LastEditTime: 2025-12-15 12:20:37
+ * @LastEditTime: 2026-01-24 11:34:20
  * @LastEditors: 安知鱼
 -->
 <template>
@@ -100,6 +100,17 @@
       class="mobile-menu-overlay"
       @click="closeMobileMenu"
     />
+
+    <!-- AI 助手 -->
+    <AIAssistant
+      :assistant-name="aiAssistantConfig.name"
+      :welcome-text="aiAssistantConfig.welcome"
+      :chat-suggestions="aiAssistantConfig.chatSuggestions"
+      :search-suggestions="aiAssistantConfig.searchSuggestions"
+    />
+
+    <!-- FPS 监控（仅开发环境显示） -->
+    <FpsMonitor v-if="isDev" />
   </div>
 </template>
 
@@ -111,7 +122,8 @@ import {
   onUnmounted,
   computed,
   ref,
-  watch
+  watch,
+  defineAsyncComponent
 } from "vue";
 import { useRoute } from "vue-router";
 import { useGlobal } from "@pureadmin/utils";
@@ -124,18 +136,41 @@ import ArrowDownBold from "@iconify-icons/ep/arrow-down-bold";
 import MuteIcon from "@iconify-icons/ep/mute";
 import MicrophoneIcon from "@iconify-icons/ep/microphone";
 
+// 首屏必需组件 - 同步加载
 import Header from "./components/hearder/index.vue";
 import Footer from "./components/footer/index.vue";
-import SearchModal from "./components/SearchModal/index.vue";
-import RightMenu from "./components/RightMenu/index.vue";
-import KeyboardTips from "./components/KeyboardTips/index.vue";
-import MobileMenu from "./components/MobileMenu/index.vue";
-import MusicPlayer from "./components/MusicPlayer/index.vue";
+
+// 非首屏组件 - 异步加载，减少首屏 JS 体积
+const SearchModal = defineAsyncComponent(
+  () => import("./components/SearchModal/index.vue")
+);
+const RightMenu = defineAsyncComponent(
+  () => import("./components/RightMenu/index.vue")
+);
+const KeyboardTips = defineAsyncComponent(
+  () => import("./components/KeyboardTips/index.vue")
+);
+const MobileMenu = defineAsyncComponent(
+  () => import("./components/MobileMenu/index.vue")
+);
+const MusicPlayer = defineAsyncComponent(
+  () => import("./components/MusicPlayer/index.vue")
+);
+const FpsMonitor = defineAsyncComponent(
+  () => import("@/components/FpsMonitor/index.vue")
+);
+const AIAssistant = defineAsyncComponent(
+  () => import("@/components/AIAssistant/index.vue")
+);
+
 import { useCopyProtection } from "@/composables/useCopyProtection";
 
 const { $storage } = useGlobal<GlobalPropertiesApi>();
 const route = useRoute();
 const siteConfigStore = useSiteConfigStore();
+
+// 是否为开发环境
+const isDev = import.meta.env.DEV;
 
 // 一图流相关
 const displaySubtitle = ref("");
@@ -533,11 +568,20 @@ watch(
 );
 
 const mainContentClass = computed(() => {
-  return route.name === "PostDetail" ? "is-post-detail" : "";
+  // 文章详情页、文档详情页和商品详情页都使用固定 header
+  if (
+    route.name === "PostDetail" ||
+    route.name === "DocDetail" ||
+    route.name === "ProductDetail"
+  ) {
+    return "is-post-detail";
+  }
+  return "";
 });
 
-// 音乐播放器是否启用
+// 音乐播放器是否启用（文档详情页不显示）
 const isMusicPlayerEnabled = computed(() => {
+  if (route.name === "DocDetail") return false;
   const musicConfig = siteConfigStore.getSiteConfig?.music?.player?.enable;
   return Boolean(musicConfig);
 });
@@ -546,6 +590,51 @@ const navConfig = computed(() => siteConfigStore.getSiteConfig?.header?.nav);
 const menuConfig = computed(() => {
   const menu = siteConfigStore.getSiteConfig?.header?.menu;
   return Array.isArray(menu) ? menu : [];
+});
+
+// 解析 JSON 数组配置
+const parseJsonArray = (raw: unknown, defaultValue: string[]): string[] => {
+  if (!raw) return defaultValue;
+  if (Array.isArray(raw)) return raw;
+  if (typeof raw === "string") {
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+    } catch {
+      // 忽略解析错误
+    }
+  }
+  return defaultValue;
+};
+
+// AI 助手配置
+const aiAssistantConfig = computed(() => {
+  const config = siteConfigStore.getSiteConfig;
+
+  // 默认预设问题
+  const defaultChatSuggestions = [
+    "你是谁？",
+    "博客有哪些功能？",
+    "如何使用Anheyu-app?"
+  ];
+  const defaultSearchSuggestions = ["前端开发", "后端开发", "Anheyu-App使用"];
+
+  // 后端 unflatten 后的结构是 ai_assistant.xxx -> {ai_assistant: {xxx: ...}}
+  const chatSuggestions = parseJsonArray(
+    config?.ai_assistant?.chat_suggestions ?? config?.ai_assistant?.suggestions,
+    defaultChatSuggestions
+  );
+  const searchSuggestions = parseJsonArray(
+    config?.ai_assistant?.search_suggestions,
+    defaultSearchSuggestions
+  );
+
+  return {
+    name: config?.ai_assistant?.name ?? "AI 助手",
+    welcome: config?.ai_assistant?.welcome ?? "如果有问题欢迎问我哦！",
+    chatSuggestions,
+    searchSuggestions
+  };
 });
 
 // 移动端菜单状态管理
@@ -720,6 +809,10 @@ onUnmounted(() => {
     z-index: -1;
     opacity: 1;
     transition: opacity 0.6s ease;
+    /* GPU 加速优化 */
+    will-change: opacity;
+    transform: translateZ(0);
+    backface-visibility: hidden;
   }
 
   /* 视频声音控制按钮 */

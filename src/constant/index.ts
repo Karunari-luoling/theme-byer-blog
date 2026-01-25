@@ -75,6 +75,7 @@ const KeySidebarWechatFace: SettingKey = "sidebar.wechat.face";
 const KeySidebarWechatBackFace: SettingKey = "sidebar.wechat.backFace";
 const KeySidebarWechatBlurredBackground: SettingKey =
   "sidebar.wechat.blurBackground";
+const KeySidebarWechatLink: SettingKey = "sidebar.wechat.link";
 const KeySidebarTagsEnable: SettingKey = "sidebar.tags.enable";
 const KeySidebarTagsHighlight: SettingKey = "sidebar.tags.highlight";
 const KeySidebarSiteInfoTotalPostCount: SettingKey =
@@ -88,6 +89,7 @@ const KeySidebarArchiveDisplayMonths: SettingKey =
 const KeySidebarCustomShowInPost: SettingKey = "sidebar.custom.showInPost";
 const KeySidebarTocCollapseMode: SettingKey = "sidebar.toc.collapseMode";
 const KeySidebarSeriesPostCount: SettingKey = "sidebar.series.postCount";
+const KeySidebarDocLinks: SettingKey = "sidebar.doc.links";
 
 // 友链配置
 const KeyFriendLinkDefaultCategory: SettingKey = "FRIEND_LINK_DEFAULTCATEGORY";
@@ -152,11 +154,17 @@ const KeyFooterSocialBarRight: SettingKey = "footer.socialBar.right";
 const KeyFooterList: SettingKey = "footer.project.list";
 const KeyFooterBarLinkList: SettingKey = "footer.bar.linkList";
 
+// --- Uptime Kuma 状态监控配置 ---
+const KeyFooterUptimeKumaEnable: SettingKey = "footer.uptime_kuma.enable";
+const KeyFooterUptimeKumaPageURL: SettingKey = "footer.uptime_kuma.page_url";
+
 // --- 文章配置 ---
 const KeyDefaultCover: SettingKey = "post.default.cover";
 const KeyPostExpirationTime: SettingKey = "post.expiration_time";
 const KeyDoubleColumn: SettingKey = "post.default.double_column";
 const KeyPostDefaultPageSize: SettingKey = "post.default.page_size";
+const KeyEnablePrimaryColorTag: SettingKey =
+  "post.default.enable_primary_color_tag";
 const Key404PageDefaultImage: SettingKey = "post.page404.default_image";
 const KeyPostRewardEnable: SettingKey = "post.reward.enable";
 const KeyPostRewardWeChatQR: SettingKey = "post.reward.wechat_qr";
@@ -171,6 +179,7 @@ const KeyPostRewardListButtonText: SettingKey = "post.reward.list_button_text";
 const KeyPostRewardListButtonDesc: SettingKey = "post.reward.list_button_desc";
 const KeyPostCodeBlockCodeMaxLines: SettingKey =
   "post.code_block.code_max_lines";
+const KeyPostCodeBlockMacStyle: SettingKey = "post.code_block.mac_style";
 
 // 文章复制版权配置
 const KeyPostCopyEnable: SettingKey = "post.copy.enable";
@@ -180,6 +189,31 @@ const KeyPostCopyCopyrightReprint: SettingKey = "post.copy.copyright_reprint";
 
 // 文章目录 Hash 更新配置
 const KeyPostTocHashUpdateMode: SettingKey = "post.toc.hash_update_mode";
+
+// 文章页面波浪区域配置
+const KeyPostWavesEnable: SettingKey = "post.waves.enable";
+
+// 文章底部版权声明配置
+const KeyPostCopyrightOriginalTemplate: SettingKey =
+  "post.copyright.original_template";
+const KeyPostCopyrightReprintTemplateWithUrl: SettingKey =
+  "post.copyright.reprint_template_with_url";
+const KeyPostCopyrightReprintTemplateWithoutUrl: SettingKey =
+  "post.copyright.reprint_template_without_url";
+
+// 文章订阅配置
+const KeyPostSubscribeEnable: SettingKey = "post.subscribe.enable";
+const KeyPostSubscribeButtonText: SettingKey = "post.subscribe.button_text";
+const KeyPostSubscribeDialogTitle: SettingKey = "post.subscribe.dialog_title";
+const KeyPostSubscribeDialogDesc: SettingKey = "post.subscribe.dialog_desc";
+const KeyPostSubscribeMailSubject: SettingKey = "post.subscribe.mail_subject";
+const KeyPostSubscribeMailTemplate: SettingKey = "post.subscribe.mail_template";
+
+// 版权区域按钮全局开关
+const KeyPostShowRewardButton: SettingKey = "post.copyright.show_reward_button";
+const KeyPostShowShareButton: SettingKey = "post.copyright.show_share_button";
+const KeyPostShowSubscribeButton: SettingKey =
+  "post.copyright.show_subscribe_button";
 
 // --- 装备页面配置 ---
 const KeyPostEquipmentBannerBackground: SettingKey =
@@ -244,10 +278,16 @@ const KeyAboutPageEnableLikeTech: SettingKey = "about.page.enable.like_tech";
 const KeyAboutPageEnableMusic: SettingKey = "about.page.enable.music";
 const KeyAboutPageEnableCustomCode: SettingKey =
   "about.page.enable.custom_code";
+const KeyAboutPageEnableComment: SettingKey = "about.page.enable.comment";
 
 const KeyMusicPlayerEnable: SettingKey = "music.player.enable";
 const KeyMusicPlayerPlaylistID: SettingKey = "music.player.playlist_id";
 const KeyMusicPlayerCustomPlaylist: SettingKey = "music.player.custom_playlist";
+const KeyMusicCapsulePlaylistID: SettingKey = "music.capsule.playlist_id";
+const KeyMusicCapsuleCustomPlaylist: SettingKey =
+  "music.capsule.custom_playlist";
+const KeyMusicPagePlaylistID: SettingKey = "music.page.playlist_id";
+const KeyMusicPageCustomPlaylist: SettingKey = "music.page.custom_playlist";
 const KeyMusicAPIBaseURL: SettingKey = "music.api.base_url";
 const KeyMusicVinylBackground: SettingKey = "music.vinyl.background";
 const KeyMusicVinylOuter: SettingKey = "music.vinyl.outer";
@@ -508,6 +548,49 @@ const KeyAIPodcastSpeechRate: SettingKey = "ai_podcast.speech_rate";
 const KeyAIPodcastButtonText: SettingKey = "ai_podcast.button_text";
 const KeyAIPodcastButtonIcon: SettingKey = "ai_podcast.button_icon";
 
+// --- AI 助手（知识库问答）配置 - PRO 专属 ---
+const KeyAIAssistantEnable: SettingKey = "ai_assistant.enable";
+const KeyAIAssistantName: SettingKey = "ai_assistant.name";
+const KeyAIAssistantWelcome: SettingKey = "ai_assistant.welcome";
+const KeyAIAssistantSuggestions: SettingKey = "ai_assistant.suggestions";
+const KeyAIAssistantEmbeddingProvider: SettingKey =
+  "ai_assistant.embedding_provider";
+const KeyAIAssistantEmbeddingApiKey: SettingKey =
+  "ai_assistant.embedding_api_key";
+const KeyAIAssistantEmbeddingModel: SettingKey = "ai_assistant.embedding_model";
+const KeyAIAssistantVectorStore: SettingKey = "ai_assistant.vector_store";
+
+// --- 人机验证配置 ---
+const KeyCaptchaProvider: SettingKey = "captcha.provider";
+
+// --- Cloudflare Turnstile 人机验证配置 ---
+const KeyTurnstileEnable: SettingKey = "turnstile.enable";
+const KeyTurnstileSiteKey: SettingKey = "turnstile.site_key";
+const KeyTurnstileSecretKey: SettingKey = "turnstile.secret_key";
+
+// --- 极验 GeeTest 4.0 人机验证配置 ---
+const KeyGeetestCaptchaId: SettingKey = "geetest.captcha_id";
+const KeyGeetestCaptchaKey: SettingKey = "geetest.captcha_key";
+
+// --- 系统图形验证码配置 ---
+const KeyImageCaptchaLength: SettingKey = "image_captcha.length";
+const KeyImageCaptchaExpire: SettingKey = "image_captcha.expire";
+
+// --- 相册页面配置 ---
+const KeyAlbumPageBannerBackground: SettingKey = "album.banner.background";
+const KeyAlbumPageBannerTitle: SettingKey = "album.banner.title";
+const KeyAlbumPageBannerDescription: SettingKey = "album.banner.description";
+const KeyAlbumPageBannerTip: SettingKey = "album.banner.tip";
+const KeyAlbumPageLayoutMode: SettingKey = "album.layout_mode";
+const KeyAlbumPageWaterfallColumnCount: SettingKey =
+  "album.waterfall.column_count";
+const KeyAlbumPageWaterfallGap: SettingKey = "album.waterfall.gap";
+const KeyAlbumPageSize: SettingKey = "album.page_size";
+const KeyAlbumPageEnableComment: SettingKey = "album.enable_comment";
+const KeyAlbumApiURL: SettingKey = "album.api_url";
+const KeyAlbumDefaultThumbParam: SettingKey = "album.default_thumb_param";
+const KeyAlbumDefaultBigParam: SettingKey = "album.default_big_param";
+
 const DEFAULT_CHUNK_SIZE = 50 * 1024 * 1024;
 
 /**
@@ -574,6 +657,7 @@ export const constant = {
   KeySidebarWechatFace,
   KeySidebarWechatBackFace,
   KeySidebarWechatBlurredBackground,
+  KeySidebarWechatLink,
   KeySidebarTagsEnable,
   KeySidebarTagsHighlight,
   KeySidebarSiteInfoTotalPostCount,
@@ -583,6 +667,7 @@ export const constant = {
   KeySidebarCustomShowInPost,
   KeySidebarTocCollapseMode,
   KeySidebarSeriesPostCount,
+  KeySidebarDocLinks,
 
   // --- 前台及页脚配置 ---
   KeyFrontDeskSiteOwnerName,
@@ -606,6 +691,10 @@ export const constant = {
   KeyFooterSocialBarRight,
   KeyFooterList,
   KeyFooterBarLinkList,
+
+  // --- Uptime Kuma 状态监控配置 ---
+  KeyFooterUptimeKumaEnable,
+  KeyFooterUptimeKumaPageURL,
 
   // 友链配置
   KeyFriendLinkDefaultCategory,
@@ -635,6 +724,7 @@ export const constant = {
   KeyDefaultCover,
   KeyDoubleColumn,
   KeyPostDefaultPageSize,
+  KeyEnablePrimaryColorTag,
   Key404PageDefaultImage,
   KeyPostRewardEnable,
   KeyPostRewardWeChatQR,
@@ -649,6 +739,7 @@ export const constant = {
   KeyPostRewardListButtonDesc,
   KeyPostExpirationTime,
   KeyPostCodeBlockCodeMaxLines,
+  KeyPostCodeBlockMacStyle,
 
   // 文章复制版权配置
   KeyPostCopyEnable,
@@ -658,6 +749,27 @@ export const constant = {
 
   // 文章目录 Hash 更新配置
   KeyPostTocHashUpdateMode,
+
+  // 文章页面波浪区域配置
+  KeyPostWavesEnable,
+
+  // 文章底部版权声明配置
+  KeyPostCopyrightOriginalTemplate,
+  KeyPostCopyrightReprintTemplateWithUrl,
+  KeyPostCopyrightReprintTemplateWithoutUrl,
+
+  // 文章订阅配置
+  KeyPostSubscribeEnable,
+  KeyPostSubscribeButtonText,
+  KeyPostSubscribeDialogTitle,
+  KeyPostSubscribeDialogDesc,
+  KeyPostSubscribeMailSubject,
+  KeyPostSubscribeMailTemplate,
+
+  // 版权区域按钮全局开关
+  KeyPostShowRewardButton,
+  KeyPostShowShareButton,
+  KeyPostShowSubscribeButton,
 
   // --- 装备页面配置 ---
   KeyPostEquipmentBannerBackground,
@@ -711,10 +823,15 @@ export const constant = {
   KeyAboutPageEnableLikeTech,
   KeyAboutPageEnableMusic,
   KeyAboutPageEnableCustomCode,
+  KeyAboutPageEnableComment,
 
   KeyMusicPlayerEnable,
   KeyMusicPlayerPlaylistID,
   KeyMusicPlayerCustomPlaylist,
+  KeyMusicCapsulePlaylistID,
+  KeyMusicCapsuleCustomPlaylist,
+  KeyMusicPagePlaylistID,
+  KeyMusicPageCustomPlaylist,
   KeyMusicAPIBaseURL,
   KeyMusicVinylBackground,
   KeyMusicVinylOuter,
@@ -965,6 +1082,46 @@ export const constant = {
   KeyAIPodcastSpeechRate,
   KeyAIPodcastButtonText,
   KeyAIPodcastButtonIcon,
+
+  // --- AI 助手配置 ---
+  KeyAIAssistantEnable,
+  KeyAIAssistantName,
+  KeyAIAssistantWelcome,
+  KeyAIAssistantSuggestions,
+  KeyAIAssistantEmbeddingProvider,
+  KeyAIAssistantEmbeddingApiKey,
+  KeyAIAssistantEmbeddingModel,
+  KeyAIAssistantVectorStore,
+
+  // --- 相册页面配置 ---
+  KeyAlbumPageBannerBackground,
+  KeyAlbumPageBannerTitle,
+  KeyAlbumPageBannerDescription,
+  KeyAlbumPageBannerTip,
+  KeyAlbumPageLayoutMode,
+  KeyAlbumPageWaterfallColumnCount,
+  KeyAlbumPageWaterfallGap,
+  KeyAlbumPageSize,
+  KeyAlbumPageEnableComment,
+  KeyAlbumApiURL,
+  KeyAlbumDefaultThumbParam,
+  KeyAlbumDefaultBigParam,
+
+  // --- 人机验证配置 ---
+  KeyCaptchaProvider,
+
+  // --- Cloudflare Turnstile 人机验证配置 ---
+  KeyTurnstileEnable,
+  KeyTurnstileSiteKey,
+  KeyTurnstileSecretKey,
+
+  // --- 极验 GeeTest 4.0 人机验证配置 ---
+  KeyGeetestCaptchaId,
+  KeyGeetestCaptchaKey,
+
+  // --- 系统图形验证码配置 ---
+  KeyImageCaptchaLength,
+  KeyImageCaptchaExpire,
 
   // --- 其他 ---
   DEFAULT_CHUNK_SIZE

@@ -46,10 +46,13 @@ const latestUpdate = computed(() => {
   return sorted[0];
 });
 
-// 格式化日期
+// 格式化日期 - 使用本地时间
 const formatDate = (dateString: string) => {
   const date = new Date(dateString);
-  return date.toISOString().slice(0, 10);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 };
 
 // 判断是否为大额赞赏

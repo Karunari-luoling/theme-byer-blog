@@ -188,7 +188,7 @@ const isMobile = deviceDetection();
 .keyboard-footer {
   padding-top: 16px;
   text-align: center;
-  border-top: 1px solid var(--style-border);
+  border-top: var(--style-border);
 }
 
 .footer-text {

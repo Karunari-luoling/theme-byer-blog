@@ -182,20 +182,25 @@ const getIpInfo = async (): Promise<void> => {
     cityName.value = city;
     await fetchWeatherInfo(location);
   } else {
-    // 获取IP定位
+    // 获取IP定位（通过天气模块专用 API，使用天气配置的 API Key）
     try {
-      const response = await fetch(
-        `https://v1.nsuuu.com/api/ipip?key=${props.config.ipAPIKey}`
-      );
-      const data = await response.json();
+      const response = await fetch(`/api/pro/public/weather/ip-location`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json"
+        }
+      });
+      const result = await response.json();
 
       let location = props.config.rectangle;
       let city = "未知";
 
-      if (data.code === 200 && data.data) {
-        city = data.data.city || "未知";
-        if (data.data.lng && data.data.lat) {
-          location = `${data.data.lng},${data.data.lat}`;
+      // 后端 API 返回格式与 NSUUU ipip API 一致:
+      // { code: 200, data: { ip, country, province, city, isp, latitude, longitude, address }, msg: "获取成功" }
+      if (result.code === 200 && result.data) {
+        city = result.data.city || "未知";
+        if (result.data.longitude && result.data.latitude) {
+          location = `${result.data.longitude},${result.data.latitude}`;
         }
       } else {
         // IP定位失败时，通过默认坐标反查城市名

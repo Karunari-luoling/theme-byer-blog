@@ -19,7 +19,11 @@
       <el-row :gutter="20">
         <el-col :span="12">
           <el-form-item label="状态" prop="status">
-            <el-select v-model="form.status" placeholder="请选择状态">
+            <el-select
+              v-model="form.status"
+              placeholder="请选择状态"
+              :teleported="false"
+            >
               <el-option label="发布" :value="1" />
               <el-option label="草稿" :value="2" />
               <el-option label="隐藏" :value="3" />
@@ -372,12 +376,18 @@ const handleFileChange = async (event: Event) => {
   const isLt5M = file.size / 1024 / 1024 < 5;
 
   if (!isImage) {
-    ElMessage.error("只能上传图片文件!");
+    ElMessage.error({
+      message: "只能上传图片文件!",
+      customClass: "high-z-index-message"
+    });
     target.value = "";
     return;
   }
   if (!isLt5M) {
-    ElMessage.error("图片大小不能超过 5MB!");
+    ElMessage.error({
+      message: "图片大小不能超过 5MB!",
+      customClass: "high-z-index-message"
+    });
     target.value = "";
     return;
   }
@@ -386,7 +396,8 @@ const handleFileChange = async (event: Event) => {
   uploading.value = true;
   const loadingMessage = ElMessage.info({
     message: "正在上传图片...",
-    duration: 0
+    duration: 0,
+    customClass: "high-z-index-message"
   });
 
   try {
@@ -401,10 +412,16 @@ const handleFileChange = async (event: Event) => {
       form.image = [];
     }
     form.image.push(url);
-    ElMessage.success("图片上传成功");
+    ElMessage.success({
+      message: "图片上传成功",
+      customClass: "high-z-index-message"
+    });
   } catch (error: any) {
     console.error("图片上传失败:", error);
-    ElMessage.error(error.message || "图片上传失败，请重试");
+    ElMessage.error({
+      message: error.message || "图片上传失败，请重试",
+      customClass: "high-z-index-message"
+    });
   } finally {
     uploading.value = false;
     loadingMessage.close();
@@ -428,7 +445,10 @@ const confirmAddLink = () => {
   const url = linkForm.url.trim();
 
   if (!url) {
-    ElMessage.warning("请输入图片链接");
+    ElMessage.warning({
+      message: "请输入图片链接",
+      customClass: "high-z-index-message"
+    });
     return;
   }
 
@@ -436,11 +456,17 @@ const confirmAddLink = () => {
   try {
     const urlObj = new URL(url);
     if (!urlObj.protocol.startsWith("http")) {
-      ElMessage.error("请输入有效的 HTTP/HTTPS 链接");
+      ElMessage.error({
+        message: "请输入有效的 HTTP/HTTPS 链接",
+        customClass: "high-z-index-message"
+      });
       return;
     }
   } catch {
-    ElMessage.error("请输入有效的URL格式");
+    ElMessage.error({
+      message: "请输入有效的URL格式",
+      customClass: "high-z-index-message"
+    });
     return;
   }
 
@@ -449,7 +475,10 @@ const confirmAddLink = () => {
     form.image = [];
   }
   form.image.push(url);
-  ElMessage.success("图片链接添加成功");
+  ElMessage.success({
+    message: "图片链接添加成功",
+    customClass: "high-z-index-message"
+  });
   addLinkDialogVisible.value = false;
 };
 
@@ -522,19 +551,26 @@ const handleSave = async () => {
     }
 
     if (response.code === 200) {
-      ElMessage.success(isEdit.value ? "更新成功" : "发布成功");
+      ElMessage.success({
+        message: isEdit.value ? "更新成功" : "发布成功",
+        customClass: "high-z-index-message"
+      });
       emit("success");
       handleClose();
     } else {
-      ElMessage.error(
-        response.message || (isEdit.value ? "更新失败" : "发布失败")
-      );
+      ElMessage.error({
+        message: response.message || (isEdit.value ? "更新失败" : "发布失败"),
+        customClass: "high-z-index-message"
+      });
     }
   } catch (error: any) {
     console.error("保存说说失败:", error);
     if (error !== false) {
       // 避免表单验证失败时重复提示
-      ElMessage.error("保存失败");
+      ElMessage.error({
+        message: "保存失败",
+        customClass: "high-z-index-message"
+      });
     }
   } finally {
     saving.value = false;

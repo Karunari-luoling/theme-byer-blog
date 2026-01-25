@@ -56,7 +56,7 @@ onMounted(() => {
     <div class="tabs-content">
       <template v-for="tab in tabs" :key="tab.value">
         <div v-show="activeTab === tab.value" class="tab-panel">
-          <slot :name="tab.value"></slot>
+          <slot :name="tab.value" />
         </div>
       </template>
     </div>
@@ -115,4 +115,3 @@ onMounted(() => {
   width: 100%;
 }
 </style>
-

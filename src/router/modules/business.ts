@@ -36,6 +36,37 @@ export default [
           title: "打赏管理",
           roles: ["1"]
         }
+      },
+      {
+        path: "/admin/product-management",
+        name: "ProductManagement",
+        component: () => import("@/views/system/product-management/index.vue"),
+        meta: {
+          icon: "ep:goods",
+          title: "商品管理",
+          roles: ["1"]
+        }
+      },
+      {
+        path: "/admin/membership-management",
+        name: "MembershipManagement",
+        component: () =>
+          import("@/views/system/membership-management/index.vue"),
+        meta: {
+          icon: "ep:user-filled",
+          title: "会员管理",
+          roles: ["1"]
+        }
+      },
+      {
+        path: "/admin/support-management",
+        name: "SupportManagement",
+        component: () => import("@/views/system/support-management/index.vue"),
+        meta: {
+          icon: "ep:service",
+          title: "售后工单",
+          roles: ["1"]
+        }
       }
     ]
   }

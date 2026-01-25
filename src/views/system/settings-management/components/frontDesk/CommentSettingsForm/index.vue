@@ -285,17 +285,14 @@ const formatJson = () => {
         </el-form-item>
       </el-col>
       <el-col :span="12">
-        <el-form-item label="QQ API 密钥">
+        <el-form-item label="QQ API Key">
           <el-input
             v-model="model.qqAPIKey"
-            type="password"
-            show-password
             placeholder="在控制台->密钥管理查看"
           />
         </el-form-item>
       </el-col>
     </el-row>
-
     <el-divider content-position="left">通知设置</el-divider>
 
     <el-alert type="info" :closable="false" style="margin-bottom: 20px">

@@ -29,11 +29,11 @@
     <div v-else class="essay-carousel-wrapper essay-loading-placeholder">
       <div class="essay-item">加载中...</div>
     </div>
-    <a
+    <router-link
       v-if="essays.length > 0"
       class="essay-more-btn anzhiyufont anzhiyu-icon-circle-arrow-right"
+      to="/essay"
       title="查看全文"
-      @click.prevent="goToEssayPage"
     />
   </div>
 </template>
@@ -58,12 +58,16 @@ const siteConfigStore = useSiteConfigStore();
 const essays = ref<EssayData[]>([]);
 const carouselRef = ref<HTMLElement | null>(null);
 const currentIndex = ref(0);
+const isLoaded = ref(false);
 let intervalId: NodeJS.Timeout | null = null;
 
 // 从配置中获取是否显示即刻条
+// 配置启用 且 (还在加载中 或 有数据时) 才显示
 const showEssayBar = computed(() => {
   const config = siteConfigStore.getSiteConfig?.essay;
-  return config?.home_enable === true;
+  return (
+    config?.home_enable === true && (!isLoaded.value || essays.value.length > 0)
+  );
 });
 
 // 用于无限循环的展示数组（复制第一条到末尾）
@@ -100,6 +104,8 @@ const fetchEssays = async () => {
     }
   } catch (error) {
     console.error("获取即刻数据失败:", error);
+  } finally {
+    isLoaded.value = true;
   }
 };
 

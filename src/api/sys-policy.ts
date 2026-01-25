@@ -21,7 +21,13 @@ export interface StoragePolicy {
   created_at: string;
   updated_at: string;
   name: string;
-  type: "local" | "onedrive" | "tencent_cos" | "aliyun_oss" | "aws_s3";
+  type:
+    | "local"
+    | "onedrive"
+    | "tencent_cos"
+    | "aliyun_oss"
+    | "aws_s3"
+    | "qiniu_kodo";
   server?: string;
   bucket_name?: string;
   is_private: boolean;
@@ -31,8 +37,6 @@ export interface StoragePolicy {
   base_path?: string;
   virtual_path?: string;
   flag?: string;
-  enable_miyoushe_sync?: boolean;
-  miyoushe_cookie?: string;
   oss_process_style?: string;
 
   settings?: {

@@ -16,7 +16,7 @@ withDefaults(defineProps<Props>(), {});
       <h3 class="chart-card-title">{{ title }}</h3>
     </div>
     <div class="chart-card-content">
-      <slot></slot>
+      <slot />
     </div>
   </div>
 </template>
@@ -46,4 +46,3 @@ withDefaults(defineProps<Props>(), {});
   min-height: 200px;
 }
 </style>
-

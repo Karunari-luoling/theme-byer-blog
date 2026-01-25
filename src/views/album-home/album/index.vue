@@ -1,43 +1,48 @@
 <!--
- * @Description:
+ * @Description: 相册页组件（支持网格和瀑布流布局）
  * @Author: 安知鱼
  * @Date: 2025-04-09 12:31:32
- * @LastEditTime: 2025-12-01 11:02:42
+ * @LastEditTime: 2026-01-13 14:54:27
  * @LastEditors: 安知鱼
 -->
 <script setup lang="ts">
 import { ref, onMounted, watch } from "vue";
-import AzImage from "@/components/AzImage";
 import AzImagePreview from "@/components/AzImagePreview";
 import { useAlbumStore } from "@/store/modules/album";
-import Download from "@/assets/svg/downloads.svg";
 import { publicWallpapert } from "@/api/album-home";
 import { message } from "@/utils/message";
 import { storeToRefs } from "pinia";
+import { Loading } from "@element-plus/icons-vue";
+import { useAlbumConfig } from "./composables/useAlbumConfig";
+import AlbumGridItem from "./components/AlbumGridItem.vue";
+import AlbumWaterfallItem from "./components/AlbumWaterfallItem.vue";
+import { LazyImg, Waterfall } from "vue-waterfall-plugin-next";
+import "vue-waterfall-plugin-next/dist/style.css";
 
 defineOptions({
   name: "album"
 });
 
-const loadedImages = ref<boolean[]>([]);
-const previewRef = ref<InstanceType<typeof AzImagePreview>>();
+// 配置
+const { layoutMode, pageSize, enableComment, waterfallConfig } =
+  useAlbumConfig();
 
-const albumStore = useAlbumStore(); // 3. 获取 store 实例
+// 状态
+const previewRef = ref<InstanceType<typeof AzImagePreview>>();
+const isLoading = ref(false);
+const wallpapers = ref<any[]>([]);
+const totalItems = ref(0);
+const currentPage = ref(1);
+const failedImageIndexes = ref<Set<number>>(new Set());
+
+// Store
+const albumStore = useAlbumStore();
 const { sortOrder, categoryId } = storeToRefs(albumStore);
 
-const handleImageLoad = () => {
-  loadedImages.value.splice(0, 24, ...Array(24).fill(true));
-};
-
-// 存储相册图片数据
-const wallpapers = ref<any[]>([]);
-// 分页相关
-const totalItems = ref<number>(0);
-const currentPage = ref<number>(1);
-const pageSize = ref<number>(24);
-
-// 请求相册图片列表
+// 数据请求
 const fetchWallpapers = async () => {
+  isLoading.value = true;
+
   try {
     const params: any = {
       page: currentPage.value,
@@ -45,7 +50,6 @@ const fetchWallpapers = async () => {
       sort: sortOrder.value
     };
 
-    // 如果选择了分类，添加 categoryId 参数
     if (categoryId.value !== null) {
       params.categoryId = categoryId.value;
     }
@@ -57,95 +61,123 @@ const fetchWallpapers = async () => {
       totalItems.value = res.data.total;
     }
   } catch (error) {
-    message("请求错误" + error, {
-      type: "error"
-    });
+    message("请求错误" + error, { type: "error" });
+  } finally {
+    isLoading.value = false;
   }
 };
 
-watch(sortOrder, newSortValue => {
-  if (newSortValue) {
+// 预览
+const handlePreview = (index: number) => {
+  previewRef.value?.open(wallpapers.value, index);
+};
+
+// 评论
+const handleComment = () => {
+  const commentSection = document.querySelector(".album-comment-section");
+  if (commentSection) {
+    commentSection.scrollIntoView({ behavior: "smooth", block: "start" });
+    setTimeout(() => {
+      const commentInput = commentSection.querySelector("textarea, input");
+      if (commentInput) {
+        (commentInput as HTMLElement).focus();
+      }
+    }, 500);
+  }
+};
+
+// 分页
+const handlePageChange = (page: number) => {
+  currentPage.value = page;
+  window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
+  fetchWallpapers();
+};
+
+// 监听
+watch(sortOrder, newVal => {
+  if (newVal) {
     currentPage.value = 1;
     fetchWallpapers();
   }
 });
 
-// 监听分类变化
 watch(categoryId, () => {
   currentPage.value = 1;
   fetchWallpapers();
 });
 
-const handlePreview = index => {
-  previewRef.value?.open(wallpapers.value, index);
-};
-
-// 监听分页变化
-const handlePageChange = (page: number) => {
-  currentPage.value = page;
-  // 平滑滑动到顶部
-  window.scrollTo({
-    top: 0,
-    left: 0,
-    behavior: "smooth"
-  });
-  fetchWallpapers();
-};
-
-const handleDownload = item => {
-  previewRef.value?.downImage(item);
-};
-
-// 在组件加载时请求数据
 onMounted(() => {
   fetchWallpapers();
 });
 </script>
 
 <template>
-  <div id="wrapper">
-    <div id="main">
-      <div
-        v-for="(item, index) in wallpapers"
-        :key="item.id"
-        :class="{ loaded: loadedImages[index], thumb: true }"
-      >
-        <AzImage
-          :src="item.imageUrl"
-          :preview-src-list="wallpapers"
-          fit="cover"
-          lazy
-          @load="handleImageLoad"
-          @open-preview="handlePreview(index)"
+  <div id="album-wrapper">
+    <div
+      id="album-main"
+      :class="{ 'waterfall-mode': layoutMode === 'waterfall' }"
+    >
+      <!-- 加载状态 -->
+      <Transition name="fade">
+        <div v-if="isLoading && wallpapers.length === 0" class="global-loading">
+          <div class="loading-spinner">
+            <el-icon class="is-loading"><Loading /></el-icon>
+            <span>加载中...</span>
+          </div>
+        </div>
+      </Transition>
+
+      <!-- 网格布局 -->
+      <template v-if="layoutMode === 'grid'">
+        <AlbumGridItem
+          v-for="(item, index) in wallpapers"
+          :key="item.id"
+          :item="item"
+          :index="index"
+          :wallpapers="wallpapers"
+          @preview="handlePreview"
         />
+      </template>
 
-        <!-- <div class="link" @click="handleDownload(item)">
-          <Download style="transform: scale(0.8)" />
-          <span>下载</span>
-        </div> -->
+      <!-- 瀑布流布局 -->
+      <template v-else>
+        <Waterfall
+          :list="wallpapers"
+          :gutter="waterfallConfig.gap"
+          :has-around-gutter="false"
+          img-selector="imageUrl"
+          :breakpoints="{
+            9999: { rowPerView: waterfallConfig.columnCount.large },
+            1200: { rowPerView: waterfallConfig.columnCount.medium },
+            500: { rowPerView: waterfallConfig.columnCount.small }
+          }"
+          :animation-effect="'fadeInUp'"
+          :animation-duration="400"
+          :animation-delay="100"
+          background-color="transparent"
+          class="waterfall-container"
+        >
+          <template #default="{ item, url, index }">
+            <AlbumWaterfallItem
+              :item="item"
+              :index="index"
+              :wallpapers="wallpapers"
+              :image-url="url"
+              :enable-comment="enableComment"
+              @preview="handlePreview"
+              @comment="handleComment"
+            />
+          </template>
+        </Waterfall>
+      </template>
 
-        <div class="image-info">
-          <h2>{{ item.title || item.width + " x " + item.height }}</h2>
-          <p v-if="item.description" class="image-desc">
-            {{ item.description }}
-          </p>
-        </div>
-        <div v-if="item.tags" class="tag-info">
-          <span class="tag-categorys">
-            <a
-              v-for="(tag, index) in item.tags.split(',')"
-              :key="index"
-              href="/"
-              class="tag"
-            >
-              {{ tag.trim() }}
-            </a>
-          </span>
-        </div>
+      <!-- 空状态 -->
+      <div v-if="!isLoading && wallpapers.length === 0" class="empty-state">
+        <el-empty description="暂无图片" />
       </div>
 
-      <!-- 分页组件 -->
-      <div class="an-pagination">
+      <!-- 分页 -->
+      <div v-if="wallpapers.length > 0" class="an-pagination">
         <el-pagination
           v-if="totalItems > 0"
           :current-page="currentPage"
@@ -161,347 +193,115 @@ onMounted(() => {
     </div>
   </div>
 </template>
+
 <style lang="scss" scoped>
-#wrapper {
+#album-wrapper {
   position: relative;
   width: 100%;
   height: 100%;
   padding: 0 0 4em;
   font-family: "Source Sans Pro", Helvetica, sans-serif;
-  transition: filter 0.5s ease;
 
-  #main {
+  #album-main {
     display: flex;
     flex-wrap: wrap;
-    transition: filter 0.5s ease;
     -webkit-tap-highlight-color: rgb(255 255 255 / 0%);
 
-    /* 减少运动偏好 */
-    @media (prefers-reduced-motion: reduce) {
-      .thumb {
-        opacity: 1 !important;
-        transition: none !important;
-      }
-    }
-
-    /* 响应式设计 */
-
-    @media screen and (width <= 1680px) {
-      div.thumb {
-        width: 33.3333%;
-      }
-    }
-
-    @media screen and (width <= 1280px) {
-      div.thumb {
-        width: 50%;
-      }
-    }
-
-    @media screen and (width <= 980px) {
-      div.thumb {
-        height: calc(28.5714vh - 1.3333em);
-        min-height: 18em;
-      }
-    }
-
-    @media screen and (width <= 736px) {
-      h2 {
-        font-size: 1em;
-      }
-
-      h3 {
-        font-size: 0.9em;
-      }
-
-      h4 {
-        font-size: 0.8em;
-      }
-
-      h5 {
-        font-size: 0.7em;
-      }
-
-      h6 {
-        font-size: 0.7em;
-      }
-
-      .thumb .image-info {
-        right: 12px;
-        bottom: 12px;
-        left: 12px;
-
-        h2 {
-          font-size: 13px;
-        }
-
-        .image-desc {
-          margin-top: 3px;
-          font-size: 11px;
-          -webkit-line-clamp: 2;
-        }
-      }
-
-      .thumb .tag-info {
-        top: 12px;
-        left: 12px;
-      }
-
-      .tag-categorys a {
-        padding: 6px;
-        margin-top: 8px;
-        margin-left: 8px;
-        font-size: 11px;
-      }
-
-      form > .fields {
-        width: calc(100% + 3em);
-        margin: -1.5em 0 2em -1.5em;
-      }
-
-      form > .fields > .field {
-        width: calc(100% - 1.5em);
-        padding: 1.5em 0 0 1.5em;
-      }
-
-      form > .fields > .field.half {
-        width: calc(100% - 1.5em);
-      }
-
-      form > .fields > .field.third {
-        width: calc(100% - 1.5em);
-      }
-
-      form > .fields > .field.quarter {
-        width: calc(100% - 1.5em);
-      }
-
-      .panel {
-        top: calc(4em - 1px);
-        bottom: auto;
-        padding: 4em 2em 2em;
-        transform: translateY(-100vh);
-      }
-
-      .panel.active {
-        transform: translateY(0);
-      }
-
-      .nav-item .nav-item-child {
-        top: 30px;
-      }
-
-      body {
-        padding: 60px 0 0;
-      }
-
-      .pagination-container {
-        gap: 6px;
-      }
-
-      .page-btn {
-        min-width: 36px;
-        height: 36px;
-        padding: 0 12px;
-        font-size: 13px;
-      }
-
-      .prev-btn,
-      .next-btn {
-        padding: 0 15px;
-      }
-    }
-
-    @media screen and (width <= 480px) {
-      div.thumb {
-        width: 100%;
-      }
-    }
-
-    .an-pagination {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-      justify-content: center;
-      width: 100%;
-      margin: 20px 0 40px;
-      clear: both;
-      text-align: center;
-
-      :deep(.el-pager) {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 0;
-        margin: 0 5px;
-
-        li {
-          margin: 0 5px;
-        }
-      }
-    }
-
-    .thumb {
-      /* stylelint-disable at-rule-no-unknown */
-      @for $i from 1 through 24 {
-        &:nth-child(#{$i}) {
-          transition-delay: 0.65s + ($i - 1) * 0.15s;
-        }
-      }
-
-      position: relative;
-      width: 25%;
-      height: calc(40vh - 2em);
-      min-height: 20em;
-      overflow: hidden;
-      pointer-events: auto;
-      opacity: 0; // 初始透明
-      transition: opacity 1.25s ease-in-out;
-      -webkit-tap-highlight-color: rgb(255 255 255 / 0%);
-      /* stylelint-enable at-rule-no-unknown */
-
-      // 当图片加载完成后显示
-      &.loaded {
-        opacity: 1;
-      }
-
-      /* 渐变遮罩 */
-      &::after {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        pointer-events: none;
-        content: "";
-        background: linear-gradient(
-          to top,
-          rgb(10 17 25 / 35%) 5%,
-          transparent 35%
-        );
-      }
-
-      /* 标题和描述 */
-      .image-info {
-        position: absolute;
-        right: 16px;
-        bottom: 16px;
-        left: 16px;
-        z-index: 1;
-        pointer-events: none;
-
-        h2 {
-          margin: 0;
-          font-size: 14px;
-          font-weight: 600;
-          line-height: 1.4;
-          color: #fff;
-          text-shadow: 0 1px 3px rgb(0 0 0 / 50%);
-        }
-
-        .image-desc {
-          display: -webkit-box;
-          margin: 4px 0 0;
-          overflow: hidden;
-          font-size: 12px;
-          line-height: 1.5;
-          color: rgb(255 255 255 / 85%);
-          text-shadow: 0 1px 2px rgb(0 0 0 / 50%);
-          -webkit-line-clamp: 2;
-          -webkit-box-orient: vertical;
-        }
-      }
-
-      .link {
-        position: absolute;
-        right: 16px;
-        bottom: 16px;
-        z-index: 1;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 4px 10px 4px 4px;
-        margin: 0;
-        font-size: 14px;
-        font-weight: bold;
-        color: #fff;
-        cursor: pointer;
-        background: rgb(0 0 0 / 80%);
-        border-radius: 5px;
-
-        &:hover {
-          background: #0d00ff;
-        }
-      }
-    }
-
-    :deep(.el-pager li.is-active),
-    :deep(.el-pager li:hover) {
-      color: #fff;
-      background: #0d00ff;
-      transition: 0.2s;
-    }
-
-    :deep(.el-pagination button.is-active),
-    :deep(.el-pagination button:hover) {
-      color: #0d00ff;
-    }
-
-    /* 遮罩层 */
-    &::after {
-      position: absolute;
-      top: 0;
-      left: 0;
-      z-index: 1;
-      width: 100%;
-      height: 100%;
-      pointer-events: none;
-      visibility: hidden;
-      content: "";
-      background: rgb(36 38 41 / 25%);
-      opacity: 0;
-      transition:
-        opacity 0.5s ease,
-        visibility 0.5s;
-    }
-
-    .tag-info {
-      position: absolute;
-      top: 16px;
-      left: 16px;
-      z-index: 1;
-      display: flex;
-      gap: 16px;
-      align-items: center;
-      margin: 0;
-      font-size: 14px;
-      font-weight: bold;
-      color: #fff;
-      pointer-events: none;
-    }
-
-    .tag-categorys {
-      display: flex;
-    }
-
-    .tag-categorys a {
-      z-index: 1;
-      padding: 8px;
-      margin-top: 12px;
-      margin-left: 12px;
-      font-size: 12px;
-      line-height: 1;
-      color: #f7f7fa;
-      background: rgb(0 0 0 / 30%);
-      backdrop-filter: saturate(180%) blur(20px);
-      border-radius: 8px;
-      transition: 0.3s;
-    }
-
-    .tag-categorys a:hover {
-      color: #fff;
-      background: #0d00ff;
+    &.waterfall-mode {
+      display: block;
     }
   }
+}
+
+/* 加载状态 */
+.global-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 400px;
+
+  .loading-spinner {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    align-items: center;
+    padding: 2rem;
+
+    .el-icon {
+      font-size: 3rem;
+      color: var(--anzhiyu-main, #49b1f5);
+    }
+
+    span {
+      font-size: 1rem;
+      font-weight: 500;
+      color: var(--anzhiyu-fontcolor, #333);
+    }
+  }
+}
+
+/* 空状态 */
+.empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 300px;
+}
+
+/* 瀑布流容器 */
+.waterfall-container {
+  :deep(.album-waterfall-item) {
+    cursor: pointer;
+    transition: transform 0.3s ease;
+  }
+}
+
+/* 分页 */
+.an-pagination {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  margin: 20px 0 40px;
+  clear: both;
+  text-align: center;
+
+  :deep(.el-pager) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    margin: 0 5px;
+
+    li {
+      margin: 0 5px;
+    }
+  }
+
+  :deep(.el-pager li.is-active),
+  :deep(.el-pager li:hover) {
+    color: #fff;
+    background: var(--anzhiyu-main, #0d00ff);
+    transition: 0.2s;
+  }
+
+  :deep(.el-pagination button.is-active),
+  :deep(.el-pagination button:hover) {
+    color: var(--anzhiyu-main, #0d00ff);
+  }
+}
+
+/* 过渡动画 */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 </style>

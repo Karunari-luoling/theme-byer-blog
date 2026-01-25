@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed, watch, nextTick } from "vue";
+import { onBeforeRouteLeave } from "vue-router";
 import { useSnackbar } from "@/composables/useSnackbar";
 import { useSiteConfigStore } from "@/store/modules/siteConfig";
 import { useLazyLoading } from "@/composables/useLazyLoading";
@@ -170,8 +171,17 @@ const initMermaidZoom = (container: HTMLElement) => {
   };
 
   mermaidContainers.forEach(mm => {
-    // 检查是否已有 action div
+    // 检查是否已有 action div（可能是子元素或兄弟元素）
     let actionDiv = mm.querySelector(".md-editor-mermaid-action");
+    // 如果子元素中没有，检查下一个兄弟元素是否是 action div（后端保存的 HTML 结构）
+    if (
+      !actionDiv &&
+      mm.nextElementSibling?.classList.contains("md-editor-mermaid-action")
+    ) {
+      // 将兄弟元素移动到 mermaid 块内部，以便 CSS 正确定位
+      actionDiv = mm.nextElementSibling;
+      mm.appendChild(actionDiv);
+    }
     if (!actionDiv) {
       // 创建 action div
       const div = document.createElement("div");
@@ -408,7 +418,7 @@ const { initLazyLoading, reinitialize, cleanup } = useLazyLoading({
 });
 
 const codeMaxLines = computed(
-  () => siteConfigStore.getSiteConfig?.code_block?.code_max_lines || 10
+  () => siteConfigStore.getSiteConfig?.post?.code_block?.code_max_lines || 10
 );
 
 const postContentRef = ref<HTMLElement | null>(null);
@@ -600,7 +610,8 @@ const autoUnlockCachedContent = async () => {
 
 const collapsedHeight = computed(() => {
   const lines = codeMaxLines.value > 0 ? codeMaxLines.value : 10;
-  const height = lines * 25 + 50;
+  // 每行高度约 26px (font-size 1rem * line-height 1.6)，加上 padding 20px
+  const height = lines * 26 + 20;
   return `${height}px`;
 });
 
@@ -1135,14 +1146,39 @@ const initTipHoverEvents = (container: HTMLElement) => {
     const trigger = tipElement.getAttribute("data-trigger");
     if (trigger === "click") return; // click触发的tip由handleContentClick处理
 
+    // 获取延迟时间（毫秒），默认无延迟
+    const delay = parseInt(tipElement.getAttribute("data-delay") || "0", 10);
+
+    // 存储定时器
+    let showTimer: ReturnType<typeof setTimeout> | null = null;
+    let hideTimer: ReturnType<typeof setTimeout> | null = null;
+
     const showTip = () => {
-      tipElement.style.visibility = "visible";
-      tipElement.style.opacity = "1";
+      // 清除隐藏定时器
+      if (hideTimer) {
+        clearTimeout(hideTimer);
+        hideTimer = null;
+      }
+      // 设置延迟显示
+      showTimer = setTimeout(() => {
+        tipElement.style.visibility = "visible";
+        tipElement.style.opacity = "1";
+        tipElement.dataset.visible = "true";
+      }, delay);
     };
 
     const hideTip = () => {
-      tipElement.style.visibility = "hidden";
-      tipElement.style.opacity = "0";
+      // 清除显示定时器
+      if (showTimer) {
+        clearTimeout(showTimer);
+        showTimer = null;
+      }
+      // 设置延迟隐藏（100ms）
+      hideTimer = setTimeout(() => {
+        tipElement.style.visibility = "hidden";
+        tipElement.style.opacity = "0";
+        tipElement.dataset.visible = "false";
+      }, 100);
     };
 
     wrapperEl.addEventListener("mouseenter", showTip);
@@ -1150,6 +1186,8 @@ const initTipHoverEvents = (container: HTMLElement) => {
 
     // 添加清理函数
     tipCleanupFns.push(() => {
+      if (showTimer) clearTimeout(showTimer);
+      if (hideTimer) clearTimeout(hideTimer);
       wrapperEl.removeEventListener("mouseenter", showTip);
       wrapperEl.removeEventListener("mouseleave", hideTip);
     });
@@ -1369,6 +1407,9 @@ onUnmounted(() => {
   // 清理全局音乐播放器函数
   unregisterGlobalMusicFunctions();
 
+  // 移除离开页面提示事件监听
+  window.removeEventListener("beforeunload", handleBeforeUnload);
+
   // 移除复制事件监听
   document.removeEventListener("copy", handleTextCopy as EventListener);
   window.removeEventListener(
@@ -1514,6 +1555,76 @@ watch(
 
 // ===== 前台编辑功能 =====
 
+// ===== 离开页面保护 =====
+// 当处于编辑模式时，离开页面需要提示用户
+
+// 自定义确认弹窗状态
+const showLeaveConfirm = ref(false);
+let leaveConfirmResolve: ((value: boolean) => void) | null = null;
+
+// 显示离开确认弹窗（返回 Promise）
+const showLeaveConfirmDialog = (): Promise<boolean> => {
+  return new Promise(resolve => {
+    leaveConfirmResolve = resolve;
+    showLeaveConfirm.value = true;
+  });
+};
+
+// 确认离开
+const confirmLeave = () => {
+  showLeaveConfirm.value = false;
+  leaveConfirmResolve?.(true);
+  leaveConfirmResolve = null;
+};
+
+// 取消离开
+const cancelLeave = () => {
+  showLeaveConfirm.value = false;
+  leaveConfirmResolve?.(false);
+  leaveConfirmResolve = null;
+};
+
+// beforeunload 事件处理函数
+const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+  if (isEditing.value) {
+    event.preventDefault();
+    // 现代浏览器会显示标准的确认对话框
+    // 设置 returnValue 是为了兼容旧版浏览器
+    event.returnValue = "您正在编辑文章，确定要离开吗？未保存的更改将丢失。";
+    return event.returnValue;
+  }
+};
+
+// 监听编辑模式变化，动态添加/移除 beforeunload 事件
+watch(
+  isEditing,
+  newIsEditing => {
+    if (newIsEditing) {
+      window.addEventListener("beforeunload", handleBeforeUnload);
+    } else {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    }
+  },
+  { immediate: true }
+);
+
+// Vue Router 路由守卫：阻止路由导航离开
+onBeforeRouteLeave(async (to, from, next) => {
+  if (isEditing.value) {
+    const confirmed = await showLeaveConfirmDialog();
+    if (confirmed) {
+      // 用户确认离开，移除 beforeunload 事件监听
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      next();
+    } else {
+      // 用户取消，阻止导航
+      next(false);
+    }
+  } else {
+    next();
+  }
+});
+
 // 进入编辑模式
 const enterEditMode = async () => {
   if (!props.isAdmin) {
@@ -1560,56 +1671,46 @@ const enterEditMode = async () => {
 
 // 退出编辑模式
 const exitEditMode = async () => {
-  try {
-    await ElMessageBox.confirm(
-      "确定要退出编辑模式吗？未保存的更改将丢失。",
-      "提示",
-      {
-        confirmButtonText: "确定",
-        cancelButtonText: "取消",
-        type: "warning"
-      }
+  const confirmed = await showLeaveConfirmDialog();
+  if (!confirmed) return;
+
+  isEditing.value = false;
+  editingContent.value = "";
+  editingMarkdown.value = "";
+  articleData.value = null;
+  accessReason.value = "";
+
+  // 退出编辑模式后，重新初始化懒加载和图片查看器
+  await nextTick();
+  if (postContentRef.value) {
+    // 清理所有图片的懒加载标记，强制重新加载
+    const images = postContentRef.value.querySelectorAll(
+      "img[data-lazy-processed]"
     );
-    isEditing.value = false;
-    editingContent.value = "";
-    editingMarkdown.value = "";
-    articleData.value = null;
-    accessReason.value = "";
-
-    // 退出编辑模式后，重新初始化懒加载和图片查看器
-    await nextTick();
-    if (postContentRef.value) {
-      // 清理所有图片的懒加载标记，强制重新加载
-      const images = postContentRef.value.querySelectorAll(
-        "img[data-lazy-processed]"
-      );
-      images.forEach(img => {
-        img.removeAttribute("data-lazy-processed");
-        // 如果有 data-src，恢复真实图片
-        const dataSrc = img.getAttribute("data-src");
-        if (dataSrc) {
-          img.setAttribute("src", dataSrc);
-          img.removeAttribute("data-src");
-        }
-      });
-
-      // 重新初始化懒加载
-      reinitialize(postContentRef.value);
-
-      // 重新初始化音乐播放器
-      initAllMusicPlayers(postContentRef.value);
-
-      // 重新绑定 Fancybox
-      if (Fancybox) {
-        Fancybox.unbind(postContentRef.value);
-        Fancybox.bind(postContentRef.value, "img:not(a img)", {
-          groupAll: true
-        });
+    images.forEach(img => {
+      img.removeAttribute("data-lazy-processed");
+      // 如果有 data-src，恢复真实图片
+      const dataSrc = img.getAttribute("data-src");
+      if (dataSrc) {
+        img.setAttribute("src", dataSrc);
+        img.removeAttribute("data-src");
       }
-      console.log("✅ 已重新初始化懒加载、音乐播放器和图片查看器");
+    });
+
+    // 重新初始化懒加载
+    reinitialize(postContentRef.value);
+
+    // 重新初始化音乐播放器
+    initAllMusicPlayers(postContentRef.value);
+
+    // 重新绑定 Fancybox
+    if (Fancybox) {
+      Fancybox.unbind(postContentRef.value);
+      Fancybox.bind(postContentRef.value, "img:not(a img)", {
+        groupAll: true
+      });
     }
-  } catch {
-    // 用户取消
+    console.log("✅ 已重新初始化懒加载、音乐播放器和图片查看器");
   }
 };
 
@@ -1911,6 +2012,44 @@ const handleImageUpload = async (file: File): Promise<string> => {
       hideThemeSwitch
       @login-success="handleLoginSuccess"
     />
+
+    <!-- 离开确认弹窗 -->
+    <Teleport to="body">
+      <Transition name="leave-confirm-fade">
+        <div
+          v-if="showLeaveConfirm"
+          class="leave-confirm-overlay"
+          @click.self="cancelLeave"
+        >
+          <div class="leave-confirm-dialog">
+            <div class="leave-confirm-icon">
+              <svg
+                viewBox="0 0 24 24"
+                width="32"
+                height="32"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+            </div>
+            <div class="leave-confirm-title">离开编辑？</div>
+            <div class="leave-confirm-message">未保存的更改将丢失</div>
+            <div class="leave-confirm-actions">
+              <button class="leave-confirm-btn cancel" @click="cancelLeave">
+                继续编辑
+              </button>
+              <button class="leave-confirm-btn confirm" @click="confirmLeave">
+                确定离开
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
@@ -2123,6 +2262,110 @@ const handleImageUpload = async (file: File): Promise<string> => {
         flex: 1;
       }
     }
+  }
+}
+
+// 离开确认弹窗样式
+.leave-confirm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+}
+
+.leave-confirm-dialog {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 90%;
+  max-width: 320px;
+  padding: 28px 24px 20px;
+  text-align: center;
+  background: var(--anzhiyu-card-bg);
+  border-radius: 16px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+}
+
+.leave-confirm-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  margin-bottom: 16px;
+  color: #faad14;
+  background: rgba(250, 173, 20, 0.1);
+  border-radius: 50%;
+}
+
+.leave-confirm-title {
+  margin-bottom: 8px;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--anzhiyu-fontcolor);
+}
+
+.leave-confirm-message {
+  margin-bottom: 24px;
+  font-size: 14px;
+  color: var(--anzhiyu-secondtext);
+}
+
+.leave-confirm-actions {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+}
+
+.leave-confirm-btn {
+  flex: 1;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+
+  &.cancel {
+    color: var(--anzhiyu-fontcolor);
+    background: var(--anzhiyu-secondbg);
+
+    &:hover {
+      background: var(--anzhiyu-background);
+    }
+  }
+
+  &.confirm {
+    color: #fff;
+    background: #ff4d4f;
+
+    &:hover {
+      background: #ff7875;
+    }
+  }
+}
+
+// 弹窗过渡动画
+.leave-confirm-fade-enter-active,
+.leave-confirm-fade-leave-active {
+  transition: opacity 0.2s ease;
+
+  .leave-confirm-dialog {
+    transition: transform 0.2s ease;
+  }
+}
+
+.leave-confirm-fade-enter-from,
+.leave-confirm-fade-leave-to {
+  opacity: 0;
+
+  .leave-confirm-dialog {
+    transform: scale(0.9);
   }
 }
 </style>

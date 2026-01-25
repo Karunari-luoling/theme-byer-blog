@@ -1,10 +1,13 @@
 <template>
-  <el-dialog
+  <AnDialog
     v-model="dialogVisible"
     :title="mode === 'create' ? '添加打赏记录' : '编辑打赏记录'"
     width="600px"
     :close-on-click-modal="false"
-    @close="handleClose"
+    show-footer
+    :confirm-loading="submitting"
+    @closed="handleClosed"
+    @confirm="handleSubmit"
   >
     <el-form ref="formRef" :model="formData" :rules="rules" label-width="120px">
       <el-form-item label="打赏者姓名" prop="name">
@@ -63,19 +66,13 @@
         <div class="form-tip">留空则使用当前时间</div>
       </el-form-item>
     </el-form>
-
-    <template #footer>
-      <el-button @click="handleClose">取消</el-button>
-      <el-button type="primary" :loading="submitting" @click="handleSubmit">
-        确定
-      </el-button>
-    </template>
-  </el-dialog>
+  </AnDialog>
 </template>
 
 <script setup lang="ts">
 import { ref, watch, computed } from "vue";
 import { ElMessage, type FormInstance, type FormRules } from "element-plus";
+import { AnDialog } from "@/components/AnDialog";
 import {
   createDonationApi,
   updateDonationApi,
@@ -151,11 +148,17 @@ watch(
           status: props.donation.status,
           sort_order: props.donation.sort_order
         };
-        // 设置自定义时间
+        // 设置自定义时间 - 使用本地时间格式
         if (props.donation.created_at) {
-          customPublishedAt.value = new Date(props.donation.created_at)
-            .toISOString()
-            .slice(0, 19);
+          const date = new Date(props.donation.created_at);
+          // 转换为本地时间格式 YYYY-MM-DDTHH:mm:ss
+          const year = date.getFullYear();
+          const month = String(date.getMonth() + 1).padStart(2, "0");
+          const day = String(date.getDate()).padStart(2, "0");
+          const hours = String(date.getHours()).padStart(2, "0");
+          const minutes = String(date.getMinutes()).padStart(2, "0");
+          const seconds = String(date.getSeconds()).padStart(2, "0");
+          customPublishedAt.value = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
         }
       }
     }
@@ -176,9 +179,8 @@ const resetForm = () => {
   formRef.value?.clearValidate();
 };
 
-// 关闭对话框
-const handleClose = () => {
-  dialogVisible.value = false;
+// 对话框关闭动画结束后的回调
+const handleClosed = () => {
   resetForm();
 };
 
@@ -191,9 +193,17 @@ const handleSubmit = async () => {
 
     submitting.value = true;
 
-    // 设置自定义时间
+    // 设置自定义时间 - 添加正确的时区偏移（如 +08:00），而不是 Z（UTC）
     if (customPublishedAt.value) {
-      formData.value.custom_published_at = customPublishedAt.value + "Z";
+      // 获取本地时区偏移（分钟）
+      const date = new Date(customPublishedAt.value);
+      const timezoneOffset = -date.getTimezoneOffset(); // 注意：getTimezoneOffset 返回的是 UTC 减去本地时间的分钟数，所以要取反
+      const offsetHours = Math.floor(Math.abs(timezoneOffset) / 60);
+      const offsetMinutes = Math.abs(timezoneOffset) % 60;
+      const offsetSign = timezoneOffset >= 0 ? "+" : "-";
+      const timezoneStr = `${offsetSign}${String(offsetHours).padStart(2, "0")}:${String(offsetMinutes).padStart(2, "0")}`;
+      formData.value.custom_published_at =
+        customPublishedAt.value + timezoneStr;
     } else {
       formData.value.custom_published_at = undefined;
     }
@@ -201,7 +211,10 @@ const handleSubmit = async () => {
     if (props.mode === "create") {
       // 创建
       await createDonationApi(formData.value);
-      ElMessage.success("添加成功");
+      ElMessage.success({
+        message: "添加成功",
+        customClass: "high-z-index-message"
+      });
     } else if (props.donation) {
       // 更新
       const updateData: UpdateDonationRequest = {
@@ -215,16 +228,22 @@ const handleSubmit = async () => {
         updateData.custom_published_at = formData.value.custom_published_at;
       }
       await updateDonationApi(props.donation.id, updateData);
-      ElMessage.success("更新成功");
+      ElMessage.success({
+        message: "更新成功",
+        customClass: "high-z-index-message"
+      });
     }
 
     emit("refresh");
-    handleClose();
+    dialogVisible.value = false;
   } catch (error: any) {
     if (error !== false) {
       // 不是表单验证错误
       console.error("提交失败:", error);
-      ElMessage.error(props.mode === "create" ? "添加失败" : "更新失败");
+      ElMessage.error({
+        message: props.mode === "create" ? "添加失败" : "更新失败",
+        customClass: "high-z-index-message"
+      });
     }
   } finally {
     submitting.value = false;

@@ -32,11 +32,8 @@ let ctx: gsap.Context;
 let observer: IntersectionObserver | null = null;
 
 const articleType = computed(() => {
-  const siteOwnerName = siteConfigStore.siteConfig?.frontDesk?.siteOwner?.name;
-  if (
-    props.article.copyright_author &&
-    props.article.copyright_author !== siteOwnerName
-  ) {
+  // 直接使用 is_reprint 字段判断文章类型
+  if (props.article.is_reprint === true) {
     return "转载";
   }
   return "原创";
@@ -45,6 +42,11 @@ const articleType = computed(() => {
 // 检查评论功能是否启用
 const isCommentEnabled = computed(() => {
   return siteConfigStore.getSiteConfig?.comment?.enable === true;
+});
+
+// 检查波浪区域是否启用（默认为 true）
+const isWavesEnabled = computed(() => {
+  return siteConfigStore.siteConfig?.post?.waves?.enable !== false;
 });
 
 onMounted(() => {
@@ -410,7 +412,7 @@ const scrollToComment = (event: Event) => {
         @load="handleImageLoad"
       />
     </div>
-    <section class="main-hero-waves-area waves-area">
+    <section v-if="isWavesEnabled" class="main-hero-waves-area waves-area">
       <svg
         class="waves-svg"
         xmlns="http://www.w3.org/2000/svg"
@@ -433,6 +435,8 @@ const scrollToComment = (event: Event) => {
         </g>
       </svg>
     </section>
+    <!-- 当波浪区域关闭时，显示圆角过渡元素 -->
+    <div v-if="!isWavesEnabled" class="post-radius-bottom" />
   </div>
 </template>
 
@@ -656,6 +660,19 @@ const scrollToComment = (event: Event) => {
   left: 0;
   z-index: 5;
   width: 100%;
+  pointer-events: none;
+}
+
+.post-radius-bottom {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  z-index: 5;
+  width: 100%;
+  height: 16px;
+  background-color: var(--anzhiyu-background);
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
   pointer-events: none;
 }
 

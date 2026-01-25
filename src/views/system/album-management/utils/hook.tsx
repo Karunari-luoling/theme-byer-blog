@@ -1,4 +1,4 @@
-import dayjs from "dayjs";
+import { formatToChina } from "@/utils/dayjs";
 import editForm from "../form.vue";
 import importExportForm from "../import-export-form.vue";
 import { message } from "@/utils/message";
@@ -199,8 +199,7 @@ export function useAlbum() {
       label: "创建时间",
       minWidth: 180,
       prop: "created_at",
-      formatter: ({ created_at }) =>
-        dayjs(created_at).format("YYYY-MM-DD HH:mm:ss")
+      formatter: ({ created_at }) => formatToChina(created_at)
     },
     {
       label: "操作",
@@ -407,7 +406,8 @@ export function useAlbum() {
           fileSize: row?.fileSize ?? 0,
           displayOrder: row?.displayOrder ?? 0,
           imageTitle: (row as any)?.title ?? "",
-          description: row?.description ?? ""
+          description: row?.description ?? "",
+          location: (row as any)?.location ?? ""
         },
         categories: categories.value
       },
@@ -996,22 +996,27 @@ export function useAlbum() {
 
   /**
    * 导出相册
+   * 如果有选中的行，则导出选中的相册
+   * 如果没有选中任何行，则导出所有相册
    */
   async function handleExport() {
     try {
-      // 获取所有相册的ID
-      const albumIds = dataList.value.map((item: any) => item.id);
-
-      if (albumIds.length === 0) {
-        message("当前没有可导出的相册", { type: "warning" });
-        return;
-      }
+      // 检查是否有选中的行，如果有则导出选中的，否则导出全部
+      const hasSelection = selectedRows.value.length > 0;
+      const albumIds = hasSelection
+        ? selectedRows.value.map((item: any) => item.id)
+        : []; // 空数组表示导出所有
 
       // 导入 AnSelect 组件
       const AnSelect = (await import("@/components/AnSelect")).default;
 
       // 创建响应式的格式选择
       const selectedFormat = ref("json");
+
+      // 确定导出数量提示文本
+      const exportCountText = hasSelection
+        ? `即将导出选中的 ${albumIds.length} 个相册，请选择导出格式：`
+        : `即将导出所有相册（共 ${pagination.total} 个），请选择导出格式：`;
 
       // 使用 AnDialog 显示导出对话框
       await new Promise((resolve, reject) => {
@@ -1033,7 +1038,7 @@ export function useAlbum() {
                     lineHeight: "1.6"
                   }
                 },
-                `即将导出 ${albumIds.length} 个相册，请选择导出格式：`
+                exportCountText
               ),
               h(
                 "div",
@@ -1071,37 +1076,52 @@ export function useAlbum() {
         });
       });
 
-      message(`正在导出 ${albumIds.length} 个相册...`, {
+      const exportMessageText = hasSelection
+        ? `正在导出选中的 ${albumIds.length} 个相册...`
+        : `正在导出所有相册...`;
+      const loadingMessage = message(exportMessageText, {
         type: "info",
         duration: 0
       });
 
-      // 调用导出接口
-      const response: any = await exportAlbums({
-        album_ids: albumIds,
-        format: selectedFormat.value
-      });
+      try {
+        // 调用导出接口，如果 albumIds 为空数组，后端会导出所有
+        const response: any = await exportAlbums({
+          album_ids: albumIds,
+          format: selectedFormat.value
+        });
 
-      // 创建下载链接
-      let blob: Blob;
-      if (response instanceof Blob) {
-        blob = response;
-      } else if (response?.data instanceof Blob) {
-        blob = response.data;
-      } else {
-        throw new Error("响应数据格式不正确");
+        // 创建下载链接
+        let blob: Blob;
+        if (response instanceof Blob) {
+          blob = response;
+        } else if (response?.data instanceof Blob) {
+          blob = response.data;
+        } else {
+          throw new Error("响应数据格式不正确");
+        }
+
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `albums-export-${new Date().getTime()}.${selectedFormat.value}`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+
+        // 关闭加载中消息
+        loadingMessage.close();
+
+        const successMessage = hasSelection
+          ? `成功导出 ${albumIds.length} 个相册！`
+          : `成功导出所有相册！`;
+        message(successMessage, { type: "success" });
+      } catch (error) {
+        // 关闭加载中消息
+        loadingMessage.close();
+        throw error;
       }
-
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `albums-export-${new Date().getTime()}.${selectedFormat.value}`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-
-      message(`成功导出 ${albumIds.length} 个相册！`, { type: "success" });
     } catch (error) {
       if (error?.message !== "cancelled") {
         console.error("导出失败:", error);

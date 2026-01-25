@@ -2,20 +2,14 @@
  * @Description:
  * @Author: 安知鱼
  * @Date: 2025-06-15 11:31:00
- * @LastEditTime: 2025-09-22 12:45:48
+ * @LastEditTime: 2026-01-17 17:15:09
  * @LastEditors: 安知鱼
  */
 import { getPluginsList } from "./build/plugins";
 import { include, exclude } from "./build/optimize";
 import { type UserConfigExport, type ConfigEnv, loadEnv } from "vite";
 import ElementPlus from "unplugin-element-plus/vite";
-import {
-  root,
-  alias,
-  wrapperEnv,
-  pathResolve,
-  __APP_INFO__
-} from "./build/utils";
+import { root, alias, wrapperEnv, __APP_INFO__ } from "./build/utils";
 
 export default ({ mode }: ConfigEnv): UserConfigExport => {
   const { VITE_CDN, VITE_PORT, VITE_COMPRESSION, VITE_PUBLIC_PATH } =
@@ -42,6 +36,28 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
           changeOrigin: true
         },
         "/needcache/": {
+          target: "http://localhost:8091",
+          changeOrigin: true
+        },
+        // SEO 相关文件代理到后端
+        "/sitemap.xml": {
+          target: "http://localhost:8091",
+          changeOrigin: true
+        },
+        "/robots.txt": {
+          target: "http://localhost:8091",
+          changeOrigin: true
+        },
+        // RSS Feed 代理到后端
+        "/rss.xml": {
+          target: "http://localhost:8091",
+          changeOrigin: true
+        },
+        "/feed.xml": {
+          target: "http://localhost:8091",
+          changeOrigin: true
+        },
+        "/atom.xml": {
           target: "http://localhost:8091",
           changeOrigin: true
         }
@@ -78,11 +94,8 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
       sourcemap: false,
       // 消除打包大小超过500kb警告
       chunkSizeWarningLimit: 4000,
-      rollupOptions: {
-        input: {
-          index: pathResolve("./index.html", import.meta.url)
-        }
-      }
+      // 启用 CSS 代码分割
+      cssCodeSplit: true
     },
     define: {
       __INTLIFY_PROD_DEVTOOLS__: false,

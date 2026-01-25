@@ -156,6 +156,7 @@ onMounted(() => {
             <a
               class="social-icon"
               :href="social.link"
+              :aria-label="String(name)"
               rel="external nofollow noreferrer"
               target="_blank"
             >

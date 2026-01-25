@@ -12,4 +12,3 @@
     <polyline points="16 7 22 7 22 13" />
   </svg>
 </template>
-

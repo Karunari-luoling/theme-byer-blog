@@ -521,12 +521,355 @@
         </el-col>
       </el-row>
     </template>
+
+    <!-- AI 助手配置 -->
+    <el-divider content-position="left">
+      <span class="divider-title">AI 助手（知识库问答）</span>
+    </el-divider>
+
+    <div class="config-tip-card">
+      <div class="tip-header">
+        <span class="tip-icon">💡</span>
+        <span class="tip-title">快速配置</span>
+      </div>
+      <div class="tip-steps">
+        <div class="step-item">
+          <span class="step-num">1</span>
+          <span class="step-text">开启 AI 助手开关</span>
+        </div>
+        <div class="step-item">
+          <span class="step-num">2</span>
+          <span class="step-text">
+            配置 Embedding（推荐
+            <a href="https://siliconflow.cn/" target="_blank">硅基流动</a>
+            免费）
+          </span>
+        </div>
+        <div class="step-item">
+          <span class="step-num">3</span>
+          <span class="step-text">选择向量存储</span>
+        </div>
+        <div class="step-item">
+          <span class="step-num">4</span>
+          <span class="step-text">前往「知识库管理」同步文章到知识库</span>
+        </div>
+      </div>
+      <div class="tip-notice">
+        <span class="notice-icon">⚠️</span>
+        <span class="notice-text">
+          AI 助手的智能回复功能依赖上方「AI 摘要」的 LLM
+          配置。如未配置，仅能进行基础回复。
+        </span>
+      </div>
+    </div>
+
+    <el-form-item label="启用 AI 助手">
+      <div>
+        <el-switch v-model="localValue.assistant.enable" />
+        <div class="form-item-tip">
+          开启后，前台左下角会显示 AI 助手悬浮按钮
+        </div>
+      </div>
+    </el-form-item>
+
+    <template v-if="localValue.assistant.enable">
+      <el-row :gutter="20">
+        <el-col :span="12">
+          <el-form-item label="助手名称">
+            <el-input
+              v-model="localValue.assistant.name"
+              placeholder="AI 助手"
+              clearable
+            />
+          </el-form-item>
+        </el-col>
+        <el-col :span="12">
+          <el-form-item label="欢迎语">
+            <el-input
+              v-model="localValue.assistant.welcome"
+              placeholder="如果有问题欢迎问我哦！"
+              clearable
+            />
+          </el-form-item>
+        </el-col>
+      </el-row>
+
+      <el-form-item label="预设问题">
+        <el-select
+          v-model="localValue.assistant.suggestions"
+          multiple
+          filterable
+          allow-create
+          default-first-option
+          placeholder="输入预设问题并回车添加"
+          style="width: 100%"
+        >
+          <el-option
+            v-for="item in defaultSuggestions"
+            :key="item"
+            :label="item"
+            :value="item"
+          />
+        </el-select>
+        <div class="form-item-tip">
+          设置常见问题建议，用户可以直接点击快速提问
+        </div>
+      </el-form-item>
+
+      <el-divider content-position="left">
+        <span class="sub-divider-title">Embedding 配置</span>
+      </el-divider>
+
+      <el-form-item label="Embedding 服务提供商">
+        <el-select
+          v-model="localValue.assistant.embeddingProvider"
+          placeholder="请选择服务提供商"
+          style="width: 100%"
+        >
+          <el-option value="siliconflow" label="硅基流动（推荐，免费）" />
+          <el-option value="zhipu" label="智谱 AI" />
+          <el-option value="openai" label="OpenAI" />
+          <el-option value="qwen" label="通义千问" />
+          <el-option value="ollama" label="Ollama（本地）" />
+        </el-select>
+        <div class="form-item-tip">
+          Embedding 用于将文本转换为向量，建议使用硅基流动（免费额度充足）
+        </div>
+      </el-form-item>
+
+      <el-form-item label="Embedding API Key">
+        <el-input
+          v-model="localValue.assistant.embeddingApiKey"
+          placeholder="请输入 API Key"
+          clearable
+          show-password
+        />
+        <div class="form-item-tip">使用 Ollama 时无需配置 API Key</div>
+      </el-form-item>
+
+      <el-form-item label="Embedding 模型">
+        <el-select
+          v-model="localValue.assistant.embeddingModel"
+          filterable
+          allow-create
+          placeholder="选择或输入模型名称"
+          style="width: 100%"
+        >
+          <el-option-group label="硅基流动">
+            <el-option value="BAAI/bge-m3" label="BGE-M3（推荐）" />
+            <el-option value="BAAI/bge-large-zh-v1.5" label="BGE-Large-zh" />
+          </el-option-group>
+          <el-option-group label="智谱 AI">
+            <el-option value="embedding-3" label="Embedding-3" />
+          </el-option-group>
+          <el-option-group label="OpenAI">
+            <el-option
+              value="text-embedding-3-small"
+              label="text-embedding-3-small"
+            />
+            <el-option
+              value="text-embedding-3-large"
+              label="text-embedding-3-large"
+            />
+          </el-option-group>
+          <el-option-group label="Ollama">
+            <el-option value="nomic-embed-text" label="nomic-embed-text" />
+            <el-option value="bge-m3" label="bge-m3" />
+          </el-option-group>
+        </el-select>
+      </el-form-item>
+
+      <el-form-item label="向量存储后端">
+        <el-select
+          v-model="localValue.assistant.vectorStore"
+          placeholder="选择向量存储后端"
+          style="width: 100%"
+        >
+          <el-option-group label="通用（所有数据库）">
+            <el-option value="embedded" label="内嵌存储">
+              <span style="float: left">内嵌存储</span>
+              <span
+                style="
+                  float: right;
+                  color: var(--el-text-color-secondary);
+                  font-size: 12px;
+                "
+              >
+                零依赖，适合中小型
+              </span>
+            </el-option>
+          </el-option-group>
+          <el-option-group label="PostgreSQL 用户推荐">
+            <el-option value="pgvector" label="pgvector 扩展">
+              <span style="float: left">pgvector 扩展</span>
+              <span
+                style="
+                  float: right;
+                  color: var(--el-text-color-secondary);
+                  font-size: 12px;
+                "
+              >
+                性能最优，需安装扩展
+              </span>
+            </el-option>
+          </el-option-group>
+          <el-option-group label="独立部署">
+            <el-option value="qdrant" label="Qdrant">
+              <span style="float: left">Qdrant</span>
+              <span
+                style="
+                  float: right;
+                  color: var(--el-text-color-secondary);
+                  font-size: 12px;
+                "
+              >
+                专业向量数据库
+              </span>
+            </el-option>
+          </el-option-group>
+        </el-select>
+        <div class="vector-store-tips">
+          <div class="tip-row">
+            <span class="tip-label">内嵌存储</span>
+            <span class="tip-desc">MySQL / SQLite 用户推荐，零依赖</span>
+          </div>
+          <div class="tip-row pgvector-tip">
+            <span class="tip-label">pgvector</span>
+            <div class="tip-desc">
+              <p>PostgreSQL 用户首选，需使用带 pgvector 的镜像。</p>
+              <div class="install-guide">
+                <p class="guide-title">Docker 用户配置方法：</p>
+                <p class="guide-step">
+                  1. 修改 docker-compose.yml 中的 PostgreSQL 镜像：
+                </p>
+                <div class="version-table">
+                  <div class="version-row">
+                    <span class="version-from">postgres:18</span>
+                    <span class="version-arrow">→</span>
+                    <code>pgvector/pgvector:pg18</code>
+                  </div>
+                  <div class="version-row">
+                    <span class="version-from">postgres:17</span>
+                    <span class="version-arrow">→</span>
+                    <code>pgvector/pgvector:pg17</code>
+                  </div>
+                  <div class="version-row">
+                    <span class="version-from">postgres:16</span>
+                    <span class="version-arrow">→</span>
+                    <code>pgvector/pgvector:pg16</code>
+                  </div>
+                </div>
+                <p class="guide-step">2. 重启并启用扩展：</p>
+                <code class="code-block"
+                  >docker compose down && docker compose up -d</code
+                >
+                <code class="code-block"
+                  >docker exec -it anheyu_postgresql psql -U anheyu -d anheyu -c
+                  "CREATE EXTENSION IF NOT EXISTS vector;"</code
+                >
+                <p class="guide-note">
+                  pgvector 镜像与官方 postgres 完全兼容，现有数据无需迁移
+                </p>
+              </div>
+              <a
+                href="https://github.com/pgvector/pgvector"
+                target="_blank"
+                class="doc-link"
+              >
+                查看官方文档 →
+              </a>
+            </div>
+          </div>
+          <div class="tip-row">
+            <span class="tip-label">Qdrant</span>
+            <span class="tip-desc">大规模知识库，需单独部署服务</span>
+          </div>
+        </div>
+      </el-form-item>
+
+      <!-- 高级配置：自定义 Prompt -->
+      <el-divider content-position="left">
+        <span class="sub-divider-title">高级配置</span>
+      </el-divider>
+
+      <el-form-item>
+        <template #label>
+          <span>自定义 Prompt</span>
+          <el-tooltip
+            content="自定义 AI 助手的回复风格和行为。留空使用默认模板"
+            placement="top"
+          >
+            <el-icon class="label-tip-icon"><QuestionFilled /></el-icon>
+          </el-tooltip>
+        </template>
+        <el-collapse v-model="promptCollapseActive" class="prompt-collapse">
+          <el-collapse-item name="prompt">
+            <template #title>
+              <span class="collapse-title">
+                {{ hasCustomPrompt ? "已自定义" : "点击展开配置" }}
+              </span>
+            </template>
+
+            <div class="prompt-config">
+              <div class="prompt-field">
+                <div class="prompt-label">
+                  <span>系统提示词</span>
+                  <el-button
+                    link
+                    type="primary"
+                    size="small"
+                    @click="resetSystemPrompt"
+                  >
+                    恢复默认
+                  </el-button>
+                </div>
+                <el-input
+                  v-model="localValue.assistant.systemPrompt"
+                  type="textarea"
+                  :rows="6"
+                  :placeholder="defaultSystemPrompt"
+                />
+                <div class="prompt-tip">定义 AI 的角色、性格和行为准则</div>
+              </div>
+
+              <div class="prompt-field">
+                <div class="prompt-label">
+                  <span>用户提示词模板</span>
+                  <el-button
+                    link
+                    type="primary"
+                    size="small"
+                    @click="resetUserPrompt"
+                  >
+                    恢复默认
+                  </el-button>
+                </div>
+                <el-input
+                  v-model="localValue.assistant.userPrompt"
+                  type="textarea"
+                  :rows="6"
+                  :placeholder="defaultUserPrompt"
+                />
+                <div class="prompt-tip">
+                  可用变量：<code v-pre>{{ context }}</code> 知识库内容、<code
+                    v-pre
+                    >{{ question }}</code
+                  >
+                  用户问题
+                </div>
+              </div>
+            </div>
+          </el-collapse-item>
+        </el-collapse>
+      </el-form-item>
+    </template>
   </div>
 </template>
 
 <script lang="ts" setup>
 import { ref, watch, computed } from "vue";
 import { ElMessage } from "element-plus";
+import { QuestionFilled } from "@element-plus/icons-vue";
 import { http } from "@/utils/http";
 import IconSelector from "../frontDesk/components/IconSelector.vue";
 
@@ -564,10 +907,24 @@ interface AIPodcastSettings {
   buttonIcon: string;
 }
 
+interface AIAssistantSettings {
+  enable: boolean;
+  name: string;
+  welcome: string;
+  suggestions: string[];
+  embeddingProvider: string;
+  embeddingApiKey: string;
+  embeddingModel: string;
+  vectorStore: string;
+  systemPrompt: string;
+  userPrompt: string;
+}
+
 interface AISettings {
   summary: AISummarySettings;
   writing: AIWritingSettings;
   podcast: AIPodcastSettings;
+  assistant: AIAssistantSettings;
 }
 
 const props = defineProps<{
@@ -580,6 +937,51 @@ const emit = defineEmits<{
 
 const testingConnection = ref(false);
 const useCustomWritingConfig = ref(false);
+const promptCollapseActive = ref<string[]>([]);
+
+// 默认 Prompt 模板
+const defaultSystemPrompt = `你是一个智能博客助手。你的任务是基于提供的博客文章内容，帮助用户解答问题。
+
+## 核心原则
+1. **基于事实**：优先使用参考资料中的内容回答，不要编造
+2. **自然流畅**：像朋友聊天一样回答，不要生硬
+3. **简洁有用**：直接回答问题，避免废话
+4. **适当补充**：如果参考资料不完整，可以适当补充通用知识
+
+## 回复风格
+- 使用口语化的中文
+- 可以使用 emoji 增加亲和力
+- 如果是技术问题，提供清晰的步骤或代码示例
+- 回复长度适中，不要过长也不要过短`;
+
+const defaultUserPrompt = `参考以下博客文章内容回答用户问题：
+
+{{context}}
+
+---
+用户问题：{{question}}
+
+请基于上述内容回答。如果内容中有直接相关的信息，请引用并解释；如果内容相关但不完整，可以适当补充；如果内容完全无关，请诚实说明并尝试提供有帮助的建议。`;
+
+// 是否有自定义 Prompt
+const hasCustomPrompt = computed(() => {
+  return (
+    (localValue.value.assistant.systemPrompt &&
+      localValue.value.assistant.systemPrompt.trim() !== "") ||
+    (localValue.value.assistant.userPrompt &&
+      localValue.value.assistant.userPrompt.trim() !== "")
+  );
+});
+
+// 恢复默认系统提示词
+const resetSystemPrompt = () => {
+  localValue.value.assistant.systemPrompt = "";
+};
+
+// 恢复默认用户提示词
+const resetUserPrompt = () => {
+  localValue.value.assistant.userPrompt = "";
+};
 
 // 播客主播音色选项
 const podcastSpeakers = [
@@ -803,6 +1205,15 @@ const temperatureMarks = {
   1: "创意"
 };
 
+// AI 助手默认预设问题
+const defaultSuggestions = [
+  "你是谁？",
+  "博客有哪些功能？",
+  "如何使用Anheyu-app?",
+  "评论系统怎么使用？",
+  "如何发布文章？"
+];
+
 const localValue = ref<AISettings>({
   summary: {
     provider: props.modelValue?.summary?.provider ?? "glm",
@@ -838,7 +1249,25 @@ const localValue = ref<AISettings>({
     sampleRate: props.modelValue?.podcast?.sampleRate ?? 24000,
     speechRate: props.modelValue?.podcast?.speechRate ?? 0,
     buttonText: props.modelValue?.podcast?.buttonText ?? "AI 播客",
-    buttonIcon: props.modelValue?.podcast?.buttonIcon ?? "anzhiyu-icon-podcast"
+    buttonIcon: props.modelValue?.podcast?.buttonIcon ?? "ri:mic-fill"
+  },
+  assistant: {
+    enable: props.modelValue?.assistant?.enable ?? false,
+    name: props.modelValue?.assistant?.name ?? "AI 助手",
+    welcome: props.modelValue?.assistant?.welcome ?? "如果有问题欢迎问我哦！",
+    suggestions: props.modelValue?.assistant?.suggestions ?? [
+      "你是谁？",
+      "博客有哪些功能？",
+      "如何使用Anheyu-app?"
+    ],
+    embeddingProvider:
+      props.modelValue?.assistant?.embeddingProvider ?? "siliconflow",
+    embeddingApiKey: props.modelValue?.assistant?.embeddingApiKey ?? "",
+    embeddingModel:
+      props.modelValue?.assistant?.embeddingModel ?? "BAAI/bge-m3",
+    vectorStore: props.modelValue?.assistant?.vectorStore ?? "embedded",
+    systemPrompt: props.modelValue?.assistant?.systemPrompt ?? "",
+    userPrompt: props.modelValue?.assistant?.userPrompt ?? ""
   }
 });
 
@@ -906,7 +1335,24 @@ watch(
         sampleRate: newValue?.podcast?.sampleRate ?? 24000,
         speechRate: newValue?.podcast?.speechRate ?? 0,
         buttonText: newValue?.podcast?.buttonText ?? "AI 播客",
-        buttonIcon: newValue?.podcast?.buttonIcon ?? "anzhiyu-icon-podcast"
+        buttonIcon: newValue?.podcast?.buttonIcon ?? "ri:mic-fill"
+      },
+      assistant: {
+        enable: newValue?.assistant?.enable ?? false,
+        name: newValue?.assistant?.name ?? "AI 助手",
+        welcome: newValue?.assistant?.welcome ?? "如果有问题欢迎问我哦！",
+        suggestions: newValue?.assistant?.suggestions ?? [
+          "你是谁？",
+          "博客有哪些功能？",
+          "如何使用Anheyu-app?"
+        ],
+        embeddingProvider:
+          newValue?.assistant?.embeddingProvider ?? "siliconflow",
+        embeddingApiKey: newValue?.assistant?.embeddingApiKey ?? "",
+        embeddingModel: newValue?.assistant?.embeddingModel ?? "BAAI/bge-m3",
+        vectorStore: newValue?.assistant?.vectorStore ?? "embedded",
+        systemPrompt: newValue?.assistant?.systemPrompt ?? "",
+        userPrompt: newValue?.assistant?.userPrompt ?? ""
       }
     };
 
@@ -1003,6 +1449,239 @@ const testConnection = async () => {
     line-height: 1.5;
   }
 
+  // 配置提示卡片
+  .config-tip-card {
+    margin-bottom: 20px;
+    padding: 16px 20px;
+    background: var(--el-fill-color-light, #f5f7fa);
+    border-radius: 10px;
+    border: 1px solid var(--el-border-color-lighter, #ebeef5);
+
+    .tip-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 14px;
+
+      .tip-icon {
+        font-size: 16px;
+      }
+
+      .tip-title {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--anzhiyu-fontcolor);
+      }
+    }
+
+    .tip-steps {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+
+      @media (max-width: 640px) {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .step-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+
+      .step-num {
+        width: 20px;
+        height: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--anzhiyu-theme, #409eff);
+        color: #fff;
+        font-size: 11px;
+        font-weight: 600;
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
+
+      .step-text {
+        font-size: 13px;
+        color: var(--anzhiyu-secondtext);
+
+        a {
+          color: var(--anzhiyu-theme, #409eff);
+          text-decoration: none;
+
+          &:hover {
+            text-decoration: underline;
+          }
+        }
+      }
+    }
+
+    .tip-notice {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 12px;
+      padding: 10px 14px;
+      background: rgba(255, 153, 0, 0.08);
+      border-radius: 8px;
+
+      .notice-icon {
+        flex-shrink: 0;
+        font-size: 16px;
+        line-height: 1;
+        display: flex;
+        align-items: center;
+      }
+
+      .notice-text {
+        font-size: 13px;
+        color: #946b00;
+        line-height: 1.5;
+      }
+    }
+  }
+
+  // 向量存储提示
+  .vector-store-tips {
+    margin-top: 10px;
+    padding: 12px 14px;
+    background: var(--el-fill-color-light, #f5f7fa);
+    border-radius: 8px;
+
+    .tip-row {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      padding: 6px 0;
+      font-size: 12px;
+
+      &:not(:last-child) {
+        border-bottom: 1px dashed var(--el-border-color-lighter, #ebeef5);
+        padding-bottom: 10px;
+        margin-bottom: 6px;
+      }
+
+      &.pgvector-tip {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 4px;
+
+        .tip-label {
+          margin-bottom: 4px;
+        }
+      }
+
+      .tip-label {
+        flex-shrink: 0;
+        font-weight: 600;
+        color: var(--anzhiyu-fontcolor);
+        min-width: 70px;
+      }
+
+      .tip-desc {
+        color: var(--anzhiyu-secondtext);
+        flex: 1;
+
+        p {
+          margin: 0 0 6px;
+        }
+
+        code {
+          padding: 1px 5px;
+          background: var(--el-fill-color, #f0f2f5);
+          border-radius: 3px;
+          font-size: 11px;
+          font-family: "SF Mono", Monaco, monospace;
+        }
+
+        .install-guide {
+          margin: 8px 0;
+          padding: 10px 12px;
+          background: var(--el-bg-color, #fff);
+          border-radius: 6px;
+          border: 1px solid var(--el-border-color-lighter, #ebeef5);
+
+          .guide-title {
+            font-weight: 500;
+            color: var(--anzhiyu-fontcolor);
+            margin-bottom: 8px;
+          }
+
+          .guide-step {
+            margin: 6px 0 4px;
+            color: var(--anzhiyu-secondtext);
+          }
+
+          .code-block {
+            display: block;
+            margin: 4px 0 8px;
+            padding: 8px 10px;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            border-radius: 4px;
+            font-size: 12px;
+            overflow-x: auto;
+            word-break: break-all;
+          }
+
+          .version-table {
+            margin: 8px 0;
+            padding: 8px 10px;
+            background: var(--el-fill-color-lighter, #fafafa);
+            border-radius: 4px;
+
+            .version-row {
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              padding: 4px 0;
+              font-size: 12px;
+
+              .version-from {
+                color: var(--el-text-color-secondary);
+                text-decoration: line-through;
+                opacity: 0.7;
+              }
+
+              .version-arrow {
+                color: var(--anzhiyu-theme, #409eff);
+              }
+
+              code {
+                padding: 2px 6px;
+                background: #1e1e1e;
+                color: #d4d4d4;
+                border-radius: 3px;
+              }
+            }
+          }
+
+          .guide-note {
+            margin: 8px 0 0;
+            padding-top: 8px;
+            border-top: 1px dashed var(--el-border-color-lighter, #ebeef5);
+            font-size: 11px;
+            color: var(--el-text-color-secondary);
+          }
+        }
+
+        .doc-link {
+          display: inline-block;
+          margin-top: 4px;
+          font-size: 12px;
+          color: var(--anzhiyu-theme, #409eff);
+          text-decoration: none;
+
+          &:hover {
+            text-decoration: underline;
+          }
+        }
+      }
+    }
+  }
+
   // 修复滑块 marks 与提示文字重叠的问题
   :deep(.el-slider) {
     margin-bottom: 24px;
@@ -1014,10 +1693,6 @@ const testConnection = async () => {
   }
 
   :deep(.el-alert) {
-    p {
-      margin: 8px 0;
-    }
-
     ul {
       margin: 8px 0;
       padding-left: 20px;
@@ -1034,6 +1709,88 @@ const testConnection = async () => {
       &:hover {
         text-decoration: underline;
       }
+    }
+  }
+
+  // Prompt 配置样式
+  .label-tip-icon {
+    margin-left: 4px;
+    color: var(--el-text-color-secondary);
+    cursor: help;
+  }
+
+  .prompt-collapse {
+    width: 100%;
+    border: none;
+    background: transparent;
+
+    :deep(.el-collapse-item__header) {
+      height: 36px;
+      line-height: 36px;
+      background: var(--el-fill-color-light, #f5f7fa);
+      border-radius: 6px;
+      padding: 0 12px;
+      font-size: 13px;
+      border: none;
+
+      &:hover {
+        background: var(--el-fill-color, #f0f2f5);
+      }
+    }
+
+    :deep(.el-collapse-item__wrap) {
+      border: none;
+      background: transparent;
+    }
+
+    :deep(.el-collapse-item__content) {
+      padding: 16px 0 0;
+    }
+
+    .collapse-title {
+      color: var(--anzhiyu-secondtext);
+    }
+  }
+
+  .prompt-config {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .prompt-field {
+    .prompt-label {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+
+      span {
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--anzhiyu-fontcolor);
+      }
+    }
+
+    .prompt-tip {
+      margin-top: 6px;
+      font-size: 12px;
+      color: var(--anzhiyu-secondtext);
+
+      code {
+        padding: 1px 5px;
+        background: var(--el-fill-color, #f0f2f5);
+        border-radius: 3px;
+        font-size: 11px;
+        font-family: "SF Mono", Monaco, monospace;
+        color: var(--anzhiyu-theme, #409eff);
+      }
+    }
+
+    :deep(.el-textarea__inner) {
+      font-family: "SF Mono", Monaco, Consolas, monospace;
+      font-size: 12px;
+      line-height: 1.6;
     }
   }
 }

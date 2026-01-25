@@ -28,6 +28,17 @@ export default [
         }
       },
       {
+        path: "/admin/doc-series-management",
+        name: "DocSeriesManagement",
+        component: () =>
+          import("@/views/system/doc-series-management/index.vue"),
+        meta: {
+          icon: "ep:notebook",
+          title: "文档系列",
+          roles: ["1"]
+        }
+      },
+      {
         path: "/admin/essay-management",
         name: "EssayManagement",
         component: () => import("@/views/system/essay-management/index.vue"),

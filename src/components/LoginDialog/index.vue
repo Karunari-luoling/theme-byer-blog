@@ -9,18 +9,20 @@ import { message } from "@/utils/message";
 import { useUserStoreHook } from "@/store/modules/user";
 import { useSiteConfigStore } from "@/store/modules/siteConfig";
 import { storeToRefs } from "pinia";
-import { getAuthorizeUrl } from "@/api/oauth";
 import { gsap } from "gsap";
+import { getAuthorizeUrl } from "@/api/oauth";
 
 // 导入子组件
 import CheckEmailForm from "@/views/login/components/CheckEmailForm.vue";
+import WechatQRCodeLoginDialog from "@/components/WechatQRCodeLoginDialog/index.vue";
 import LoginForm from "@/views/login/components/LoginForm.vue";
 import RegisterPrompt from "@/views/login/components/RegisterPrompt.vue";
 import RegisterForm from "@/views/login/components/RegisterForm.vue";
 import ForgotPasswordForm from "@/views/login/components/ForgotPasswordForm.vue";
 import ResetPasswordForm from "@/views/login/components/ResetPasswordForm.vue";
 import ActivatePrompt from "@/views/login/components/ActivatePrompt.vue";
-import WechatQRCodeLoginDialog from "@/components/WechatQRCodeLoginDialog/index.vue";
+import CaptchaVerify from "@/components/CaptchaVerify/index.vue";
+import type { CaptchaParams } from "@/components/CaptchaVerify/index.vue";
 
 defineOptions({ name: "LoginDialog" });
 
@@ -35,6 +37,36 @@ const emit = defineEmits(["update:modelValue", "login-success"]);
 const siteConfigStore = useSiteConfigStore();
 const { dataTheme, dataThemeChange } = useDataThemeChange();
 const { enableRegistration } = storeToRefs(siteConfigStore);
+
+// 人机验证相关
+const captchaRef = ref<InstanceType<typeof CaptchaVerify>>();
+const captchaParams = ref<CaptchaParams>({});
+const captchaReset = ref(false);
+
+// 判断是否启用了人机验证
+const isCaptchaEnabled = computed(() => {
+  return captchaRef.value?.isEnabled ?? false;
+});
+
+// 人机验证成功回调
+const onCaptchaVerified = (params: CaptchaParams) => {
+  captchaParams.value = params;
+};
+
+// 人机验证错误回调
+const onCaptchaError = () => {
+  captchaParams.value = {};
+  message("人机验证加载失败，请刷新页面重试", { type: "error" });
+};
+
+// 重置人机验证
+const resetCaptcha = () => {
+  captchaParams.value = {};
+  captchaReset.value = true;
+  nextTick(() => {
+    captchaReset.value = false;
+  });
+};
 
 // Logo
 const siteIcon = computed(() => {
@@ -156,26 +188,50 @@ const apiHandlers = {
     return res.code === 200 && res.data.exists;
   },
   login: async () => {
-    await useUserStoreHook().loginByEmail({
-      email: form.email,
-      password: form.password
-    });
-    // 初始化路由（仅供管理员使用，普通用户不需要）
-    await initRouter();
-    // 获取最新的用户信息
-    await useUserStoreHook().fetchUserInfo();
-    message("登录成功", { type: "success" });
-    emit("login-success");
-    closeDialog();
+    // 检查人机验证
+    if (isCaptchaEnabled.value && !captchaRef.value?.isVerified) {
+      message("请完成人机验证", { type: "warning" });
+      return;
+    }
+
+    try {
+      await useUserStoreHook().loginByEmail({
+        email: form.email,
+        password: form.password,
+        ...captchaParams.value
+      });
+
+      // 初始化路由（仅供管理员使用，普通用户不需要）
+      await initRouter();
+      // 获取最新的用户信息
+      await useUserStoreHook().fetchUserInfo();
+      message("登录成功", { type: "success" });
+      emit("login-success");
+      closeDialog();
+    } finally {
+      // 无论登录成功还是失败，都重置验证码（极验 pass_token 只能使用一次）
+      resetCaptcha();
+    }
   },
   register: async () => {
+    // 检查人机验证
+    if (isCaptchaEnabled.value && !captchaRef.value?.isVerified) {
+      message("请完成人机验证", { type: "warning" });
+      return;
+    }
+
     try {
       const res = await useUserStoreHook().registeredUser({
         email: form.email,
         nickname: form.nickname,
         password: form.password,
-        repeat_password: form.confirmPassword
+        repeat_password: form.confirmPassword,
+        ...captchaParams.value
       });
+
+      // 注册成功后重置验证码
+      resetCaptcha();
+
       if (res.code === 200) {
         if (res.data?.activation_required) {
           // 保存当前页面URL到localStorage，供激活后返回
@@ -192,19 +248,39 @@ const apiHandlers = {
         throw new Error(res.message || "注册失败");
       }
     } catch (error: any) {
-      // 重新抛出错误，让 handleSubmit 处理
+      // 如果是后端返回的错误（包含 code 和 message），显示后端的错误信息
+      if (error?.code && error?.message) {
+        message(error.message, { type: "error" });
+      } else if (error?.message) {
+        // 如果是前端抛出的 Error 对象
+        message(error.message, { type: "error" });
+      } else {
+        // 其他未知错误
+        message("注册失败，请稍后重试", { type: "error" });
+      }
+      // 重新抛出错误，让 handleSubmit 处理 loading 状态
       throw error;
     }
   },
-  sendResetEmail: async (payload: { captcha: string; captchaCode: string }) => {
-    if (payload.captcha.toLowerCase() !== payload.captchaCode.toLowerCase()) {
-      message("验证码不正确", { type: "error" });
-      forgotPasswordFormRef.value?.refreshCaptcha();
+  sendResetEmail: async (payload: {
+    captchaParams: Record<string, string>;
+    isCaptchaEnabled: boolean;
+    isVerified: boolean;
+  }) => {
+    // 检查人机验证
+    if (payload.isCaptchaEnabled && !payload.isVerified) {
+      message("请完成人机验证", { type: "warning" });
       return;
     }
+
     const res = await useUserStoreHook().sendPasswordResetEmail({
-      email: form.email
+      email: form.email,
+      ...payload.captchaParams
     });
+
+    // 发送后重置验证码
+    forgotPasswordFormRef.value?.refreshCaptcha();
+
     if (res.code === 200) {
       message(res.message, { type: "success" });
       switchStep("check-email", "prev");
@@ -263,16 +339,14 @@ const handleOAuthLogin = async (provider: string, loginType?: string) => {
 
     const res = await getAuthorizeUrl(provider, callbackUrl, loginType);
     if (res.code === 200 && res.data) {
-      let authorizeUrl: string | undefined;
+      // 彩虹聚合登录返回的是url字段，其他OAuth返回的是authorize_url字段
+      // 注意：Go 结构体序列化时会包含所有字段（即使是空字符串），所以需要优先检查 url 字段
+      const authorizeUrl =
+        (res.data as any).url || (res.data as any).authorize_url;
 
-      // 类型守卫：判断是标准OAuth还是彩虹聚合
-      if ("authorize_url" in res.data) {
-        // res.data is now AuthorizeUrlData
-        authorizeUrl = res.data.authorize_url;
-        sessionStorage.setItem("oauth_state", res.data.state);
-      } else {
-        // res.data is now RainbowAuthorizeData
-        authorizeUrl = res.data.url;
+      // 保存 state（彩虹聚合登录不需要 state 验证，但其他 OAuth 需要）
+      if ((res.data as any).state) {
+        sessionStorage.setItem("oauth_state", (res.data as any).state);
       }
 
       if (authorizeUrl) {
@@ -280,6 +354,10 @@ const handleOAuthLogin = async (provider: string, loginType?: string) => {
         // 标记登录来源为弹窗登录，并保存当前页面URL
         sessionStorage.setItem("oauth_source", "dialog");
         sessionStorage.setItem("oauth_return_url", window.location.href);
+        // 保存登录类型（彩虹聚合登录需要）
+        if (loginType) {
+          sessionStorage.setItem("oauth_login_type", loginType);
+        }
 
         // 重定向到第三方OAuth授权页面
         window.location.href = authorizeUrl;
@@ -324,7 +402,11 @@ const eventHandlers = {
     handleSubmit(() => formRef.value!.validate(), apiHandlers.login),
   onRegister: () =>
     handleSubmit(() => formRef.value!.validate(), apiHandlers.register),
-  onForgotPassword: (payload: { captcha: string; captchaCode: string }) =>
+  onForgotPassword: (payload: {
+    captchaParams: Record<string, string>;
+    isCaptchaEnabled: boolean;
+    isVerified: boolean;
+  }) =>
     handleSubmit(
       () => formRef.value!.validateField("email"),
       () => apiHandlers.sendResetEmail(payload)
@@ -504,6 +586,15 @@ watch(
             </div>
 
             <el-form ref="formRef" :model="form" :rules="rules" size="large">
+              <!-- 人机验证 - 在登录和注册步骤显示 -->
+              <CaptchaVerify
+                v-if="step === 'login-password' || step === 'register-form'"
+                ref="captchaRef"
+                :reset="captchaReset"
+                @verified="onCaptchaVerified"
+                @error="onCaptchaError"
+              />
+
               <div class="form-wrapper">
                 <transition
                   :name="transitionName"
@@ -588,6 +679,7 @@ watch(
     <!-- 微信扫码登录弹窗 -->
     <WechatQRCodeLoginDialog
       v-model="showWechatLoginDialog"
+      skip-navigation
       @success="handleWechatLoginSuccess"
     />
   </Teleport>
@@ -596,54 +688,60 @@ watch(
 <style scoped lang="scss">
 .login-dialog-wrapper {
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   z-index: 2000;
 }
 
 .dialog-overlay {
   position: absolute;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 1rem;
-  background-color: rgb(0 0 0 / 50%);
-  backdrop-filter: blur(4px);
 }
 
 .dialog-container {
   position: relative;
   width: 100%;
   max-width: 28rem;
-  padding: 2rem;
   background: var(--anzhiyu-card-bg);
   border: 1px solid var(--anzhiyu-border-color);
   border-radius: 1rem;
   box-shadow:
-    0 20px 25px -5px rgb(0 0 0 / 10%),
-    0 10px 10px -5px rgb(0 0 0 / 4%);
+    0 20px 25px -5px rgba(0, 0, 0, 0.1),
+    0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  padding: 2rem;
 }
 
 .close-btn {
   position: absolute;
   top: 1rem;
   right: 1rem;
-  z-index: 10;
+  width: 2rem;
+  height: 2rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 2rem;
-  height: 2rem;
-  color: var(--anzhiyu-fontcolor);
-  cursor: pointer;
   background: transparent;
   border: none;
   border-radius: 0.5rem;
+  color: var(--anzhiyu-fontcolor);
+  cursor: pointer;
   transition: all 0.2s;
+  z-index: 10;
 
   &:hover {
-    color: var(--anzhiyu-main);
     background: var(--anzhiyu-theme-op);
+    color: var(--anzhiyu-main);
   }
 }
 

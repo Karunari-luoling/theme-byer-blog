@@ -48,6 +48,24 @@ import GitRepositoryFill from "@iconify-icons/ri/git-repository-fill";
 import GoogleFill from "@iconify-icons/ri/google-fill";
 import MicrosoftFill from "@iconify-icons/ri/microsoft-fill";
 import FacebookFill from "@iconify-icons/ri/facebook-fill";
+// OAuth绑定卡片使用的图标
+import ShieldUserFill from "@iconify-icons/ri/shield-user-fill";
+import RouterFill from "@iconify-icons/ri/router-fill";
+import LinkM from "@iconify-icons/ri/link-m";
+import ErrorWarningLine from "@iconify-icons/ri/error-warning-line";
+// 会员中心图标
+import VipCrown2Fill from "@iconify-icons/ri/vip-crown-2-fill";
+import VipCrownLine from "@iconify-icons/ri/vip-crown-line";
+import ShoppingCart2Line from "@iconify-icons/ri/shopping-cart-2-line";
+// 用户弹窗图标
+import Notification3Line from "@iconify-icons/ri/notification-3-line";
+import Notification2Line from "@iconify-icons/ri/notification-2-line";
+import Notification2Fill from "@iconify-icons/ri/notification-2-fill";
+import ArticleLine from "@iconify-icons/ri/article-line";
+import User3Line from "@iconify-icons/ri/user-3-line";
+import Settings3Line from "@iconify-icons/ri/settings-3-line";
+// 工单图标
+import CustomerService2Fill from "@iconify-icons/ri/customer-service-2-fill";
 addIcon("ri:search-line", Search);
 addIcon("ri:information-line", InformationLine);
 addIcon("ri:apps-fill", AppsFill);
@@ -81,4 +99,22 @@ addIcon("ri:git-repository-fill", GitRepositoryFill);
 addIcon("ri:google-fill", GoogleFill);
 addIcon("ri:microsoft-fill", MicrosoftFill);
 addIcon("ri:facebook-fill", FacebookFill);
+// OAuth绑定卡片图标注册
+addIcon("ri:shield-user-fill", ShieldUserFill);
+addIcon("ri:router-fill", RouterFill);
+addIcon("ri:link-m", LinkM);
+addIcon("ri:error-warning-line", ErrorWarningLine);
+// 会员中心图标注册
+addIcon("ri:vip-crown-2-fill", VipCrown2Fill);
+addIcon("ri:vip-crown-line", VipCrownLine);
+addIcon("ri:shopping-cart-2-line", ShoppingCart2Line);
+// 用户弹窗图标注册
+addIcon("ri:notification-3-line", Notification3Line);
+addIcon("ri:notification-2-line", Notification2Line);
+addIcon("ri:notification-2-fill", Notification2Fill);
+addIcon("ri:article-line", ArticleLine);
+addIcon("ri:user-3-line", User3Line);
+addIcon("ri:settings-3-line", Settings3Line);
+// 工单图标注册
+addIcon("ri:customer-service-2-fill", CustomerService2Fill);
 // Twitter 图标在 ri 包中不存在，使用在线图标

@@ -60,8 +60,13 @@ export const useArticleStore = defineStore("article", () => {
     try {
       const res = await getRandomArticle();
       if (res.code === 200 && res.data) {
-        const articleId = res.data.id;
-        router.push({ path: `/posts/${articleId}` });
+        const article = res.data;
+        // 如果是文档类型，跳转到文档详情页
+        if (article.is_doc || article.doc_series_id) {
+          router.push({ path: `/doc/${article.id}` });
+        } else {
+          router.push({ path: `/posts/${article.id}` });
+        }
       } else {
         ElMessage.warning(res.message || "暂时没有可供浏览的文章");
       }

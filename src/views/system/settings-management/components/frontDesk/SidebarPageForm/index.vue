@@ -10,7 +10,8 @@ import {
 import type {
   SidebarPageSettingsInfo,
   JsonEditorTableColumn,
-  CustomSidebarBlock
+  CustomSidebarBlock,
+  DocSidebarLinkItem
 } from "../../../type";
 import JsonEditorTable from "../components/JsonEditorTable.vue";
 import HighlightTagSelector from "../components/HighlightTagSelector.vue";
@@ -132,6 +133,32 @@ const updateSocials = (jsonString: string) => {
     model.value.authorSocial = newObject;
   } catch (e) {
     console.error("更新社交链接失败:", e);
+  }
+};
+
+// 文档模式侧边栏链接配置
+const docLinkColumns = ref<JsonEditorTableColumn[]>([
+  { prop: "title", label: "标题" },
+  { prop: "link", label: "链接地址" },
+  { prop: "icon", label: "图标", slot: "docIcon" },
+  { prop: "external", label: "外部链接", slot: "external" }
+]);
+
+const docLinksForTable = computed(() => {
+  return model.value.docSidebarLinks || [];
+});
+
+const updateDocLinks = (jsonString: string) => {
+  try {
+    const arrayData = JSON.parse(jsonString || "[]") as DocSidebarLinkItem[];
+    model.value.docSidebarLinks = arrayData.map(item => ({
+      title: item.title || "",
+      link: item.link || "",
+      icon: item.icon || "ri:external-link-line",
+      external: item.external ?? false
+    }));
+  } catch (e) {
+    console.error("更新文档侧边栏链接失败:", e);
   }
 };
 
@@ -399,6 +426,15 @@ const moveSidebarBlock = (index: number, direction: number) => {
             <el-input v-model="model.wechatBlurredBackground" clearable />
           </el-form-item>
         </el-col>
+        <el-col :span="12">
+          <el-form-item label="点击跳转链接">
+            <el-input
+              v-model="model.wechatLink"
+              placeholder="留空则不跳转，填写后点击卡片会打开此链接"
+              clearable
+            />
+          </el-form-item>
+        </el-col>
       </el-row>
     </template>
 
@@ -438,9 +474,11 @@ const moveSidebarBlock = (index: number, direction: number) => {
       </el-col>
     </el-row>
 
-    <el-form-item v-if="model.tagsEnable" label="选择高亮的标签">
-      <HighlightTagSelector v-model="model.tagsHighlight" />
-    </el-form-item>
+    <el-collapse-transition>
+      <el-form-item v-if="model.tagsEnable" label="选择高亮的标签">
+        <HighlightTagSelector v-model="model.tagsHighlight" />
+      </el-form-item>
+    </el-collapse-transition>
 
     <el-divider content-position="left">网站资讯</el-divider>
     <el-row :gutter="20">
@@ -468,7 +506,7 @@ const moveSidebarBlock = (index: number, direction: number) => {
         <div class="form-item-help">在侧边栏显示实时时钟和天气信息</div>
       </div>
     </el-form-item>
-    <template v-if="model.weatherEnable">
+    <div v-if="model.weatherEnable" class="weather-config-section">
       <el-row :gutter="20">
         <el-col :span="12">
           <el-form-item label="应用页面">
@@ -521,7 +559,16 @@ const moveSidebarBlock = (index: number, direction: number) => {
               placeholder="请输入 NSUUU IP定位API的key"
               clearable
             />
-            <div class="form-item-help">用于获取访问者地理位置</div>
+            <div class="form-item-help">
+              用于获取访问者地理位置，从
+              <a
+                href="https://api.nsuuu.com/"
+                target="_blank"
+                style="color: var(--anzhiyu-theme)"
+                >NSUUU API</a
+              >
+              获取
+            </div>
           </el-form-item>
         </el-col>
         <el-col :span="12">
@@ -556,7 +603,7 @@ const moveSidebarBlock = (index: number, direction: number) => {
           开启"默认显示固定位置"后，将始终显示此位置的天气
         </div>
       </el-form-item>
-    </template>
+    </div>
 
     <el-divider content-position="left">目录设置</el-divider>
     <el-form-item label="目录折叠模式">
@@ -568,6 +615,34 @@ const moveSidebarBlock = (index: number, direction: number) => {
         </div>
       </div>
     </el-form-item>
+
+    <el-divider content-position="left">文档模式侧边栏</el-divider>
+    <div class="form-item-help" style="margin-bottom: 16px">
+      配置文档模式文章页面侧边栏顶部显示的导航链接。<br />
+      可以添加如"博客"、"文档"、"GitHub"等快捷链接。
+    </div>
+    <JsonEditorTable
+      :model-value="JSON.stringify(docLinksForTable)"
+      title="文档侧边栏链接"
+      :columns="docLinkColumns"
+      :new-item-template="{
+        title: '',
+        link: '',
+        icon: 'ri:external-link-line',
+        external: false
+      }"
+      @update:model-value="updateDocLinks($event)"
+    >
+      <template #docIcon="{ scope }">
+        <IconSelector
+          :model-value="scope.row.icon"
+          @update:model-value="scope.row.icon = $event"
+        />
+      </template>
+      <template #external="{ scope }">
+        <el-switch v-model="scope.row.external" size="small" />
+      </template>
+    </JsonEditorTable>
 
     <el-divider content-position="left">自定义侧边栏</el-divider>
     <div class="custom-sidebar-blocks">

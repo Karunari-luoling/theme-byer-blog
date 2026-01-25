@@ -8,13 +8,252 @@ import type { SettingKey } from "@/constant";
  * @param backendKey - 在后端API中的键名 (e.g., 'APP_NAME')
  * @param defaultValue - 该项的默认值
  * @param type - 数据类型，用于自动转换。'string' | 'boolean' | 'number' | 'json'
+ * @param label - 配置项的显示名称，用于搜索
+ * @param searchKeywords - 额外的搜索关键词
  */
 export interface SettingDescriptor {
   frontendPath: string;
   backendKey: SettingKey;
   defaultValue: any;
   type: "string" | "boolean" | "number" | "json";
+  /** 配置项的显示名称，用于搜索 */
+  label?: string;
+  /** 额外的搜索关键词 */
+  searchKeywords?: string[];
 }
+
+/**
+ * @description 设置菜单项接口
+ */
+export interface SettingsMenuItem {
+  /** 唯一标识 */
+  key: string;
+  /** 显示名称 */
+  label: string;
+  /** 图标名称 (iconify 格式) */
+  icon?: string;
+  /** 子菜单项 */
+  children?: SettingsMenuChild[];
+}
+
+export interface SettingsMenuChild {
+  /** 唯一标识 */
+  key: string;
+  /** 显示名称 */
+  label: string;
+  /** 对应的表单组件名称 */
+  component: string;
+  /** 搜索关键词 */
+  keywords?: string[];
+}
+
+/**
+ * @description 设置页面左侧菜单配置
+ */
+export const settingsMenuConfig: SettingsMenuItem[] = [
+  {
+    key: "site",
+    label: "站点信息",
+    icon: "ri:global-line",
+    children: [
+      {
+        key: "site-basic",
+        label: "基本信息",
+        component: "BaseInfoForm",
+        keywords: ["站点名称", "描述", "URL", "备案", "公告"]
+      },
+      {
+        key: "site-icon",
+        label: "Logo 与图标",
+        component: "IconSettingsForm",
+        keywords: ["favicon", "logo", "图标", "PWA"]
+      }
+    ]
+  },
+  {
+    key: "appearance",
+    label: "外观配置",
+    icon: "ri:palette-line",
+    children: [
+      {
+        key: "appearance-home",
+        label: "首页设置",
+        component: "HomePageForm",
+        keywords: ["首页", "顶部", "banner", "分类"]
+      },
+      {
+        key: "appearance-sidebar",
+        label: "侧边栏",
+        component: "SidebarPageForm",
+        keywords: ["侧边栏", "作者", "标签", "天气"]
+      },
+      {
+        key: "appearance-page",
+        label: "页面样式",
+        component: "PageSittingForm",
+        keywords: ["外链", "图片", "一图流", "CSS", "JS"]
+      }
+    ]
+  },
+  {
+    key: "content",
+    label: "内容管理",
+    icon: "ri:article-line",
+    children: [
+      {
+        key: "content-post",
+        label: "文章配置",
+        component: "PostSettings",
+        keywords: ["文章", "封面", "打赏", "代码块", "复制"]
+      },
+      {
+        key: "content-file",
+        label: "文件处理",
+        component: "FileSettings",
+        keywords: ["上传", "缩略图", "EXIF", "视频"]
+      }
+    ]
+  },
+  {
+    key: "user",
+    label: "用户通知",
+    icon: "ri:user-settings-line",
+    children: [
+      {
+        key: "user-comment",
+        label: "评论系统",
+        component: "CommentSettingsForm",
+        keywords: ["评论", "敏感词", "通知", "审核"]
+      },
+      {
+        key: "user-email",
+        label: "邮件服务",
+        component: "EmailSettingsForm",
+        keywords: ["SMTP", "邮件", "模板", "激活"]
+      }
+    ]
+  },
+  {
+    key: "integration",
+    label: "三方服务",
+    icon: "ri:plug-line",
+    children: [
+      {
+        key: "integration-oauth",
+        label: "第三方登录",
+        component: "OAuthPageForm",
+        keywords: ["QQ", "微信", "Logto", "OIDC", "彩虹"]
+      },
+      {
+        key: "integration-seo",
+        label: "SEO 推送",
+        component: "SeoSettingsForm",
+        keywords: ["百度", "Bing", "Google", "收录"]
+      }
+    ]
+  },
+  {
+    key: "pages",
+    label: "页面＆显示",
+    icon: "ri:layout-grid-line",
+    children: [
+      {
+        key: "pages-flink",
+        label: "友链管理",
+        component: "FLinkPageSettingsForm",
+        keywords: ["友链", "申请", "审核"]
+      },
+      {
+        key: "pages-about",
+        label: "关于页面",
+        component: "AboutPageForm",
+        keywords: ["关于", "技能", "生涯"]
+      },
+      {
+        key: "pages-equipment",
+        label: "装备页面",
+        component: "EquipmentPageForm",
+        keywords: ["装备", "好物"]
+      },
+      {
+        key: "pages-comments-page",
+        label: "评论页面",
+        component: "RecentCommentsPageForm",
+        keywords: ["最近评论"]
+      },
+      {
+        key: "pages-essay",
+        label: "即刻页面",
+        component: "EssayPageForm",
+        keywords: ["即刻", "说说"]
+      },
+      {
+        key: "pages-moments",
+        label: "朋友圈页",
+        component: "MomentsPageForm",
+        keywords: ["朋友圈", "RSS"]
+      },
+      {
+        key: "pages-album",
+        label: "相册页面",
+        component: "AlbumPageForm",
+        keywords: ["相册", "图片", "瀑布流", "画廊"]
+      },
+      {
+        key: "pages-music",
+        label: "音乐页面",
+        component: "MusicPageForm",
+        keywords: ["音乐", "播放器", "歌单", "胶囊", "唱片"]
+      },
+      {
+        key: "pages-page-management",
+        label: "页面管理",
+        component: "PageManagement",
+        keywords: ["页面", "自定义"]
+      }
+    ]
+  },
+  {
+    key: "advanced",
+    label: "高级功能",
+    icon: "ri:settings-4-line",
+    children: [
+      {
+        key: "advanced-captcha",
+        label: "人机验证",
+        component: "CaptchaSettingsForm",
+        keywords: [
+          "Turnstile",
+          "Cloudflare",
+          "极验",
+          "GeeTest",
+          "人机验证",
+          "登录",
+          "安全",
+          "验证码"
+        ]
+      },
+      {
+        key: "advanced-ai",
+        label: "AI功能",
+        component: "AISettingsForm",
+        keywords: ["AI", "摘要", "写作", "播客"]
+      },
+      {
+        key: "advanced-payment",
+        label: "支付配置",
+        component: "PaymentConfigForm",
+        keywords: ["支付", "微信", "支付宝"]
+      },
+      {
+        key: "advanced-backup",
+        label: "备份导入",
+        component: "BackupImportForm",
+        keywords: ["备份", "导入", "导出", "恢复", "配置"]
+      }
+    ]
+  }
+];
 
 const siteDescriptors: SettingDescriptor[] = [
   {
@@ -104,7 +343,7 @@ const siteDescriptors: SettingDescriptor[] = [
   {
     frontendPath: "site.gravatarURL",
     backendKey: constant.KeyGravatarURL,
-    defaultValue: "https://cdn.sep.cc/",
+    defaultValue: "https://cravatar.cn/",
     type: "string"
   },
   {
@@ -133,24 +372,6 @@ const pageDescriptors: SettingDescriptor[] = [
     backendKey: constant.KeyEnableExternalLinkWarning,
     defaultValue: false,
     type: "boolean"
-  },
-  {
-    frontendPath: "page.albumApiURL",
-    backendKey: constant.KeyApiURL,
-    defaultValue: "",
-    type: "string"
-  },
-  {
-    frontendPath: "page.defaultThumbParam",
-    backendKey: constant.KeyDefaultThumbParam,
-    defaultValue: "",
-    type: "string"
-  },
-  {
-    frontendPath: "page.defaultBigParam",
-    backendKey: constant.KeyDefaultBigParam,
-    defaultValue: "",
-    type: "string"
   },
   {
     frontendPath: "page.customHeaderHTML",
@@ -429,6 +650,12 @@ const postDescriptors: SettingDescriptor[] = [
     type: "number"
   },
   {
+    frontendPath: "post.default.enablePrimaryColorTag",
+    backendKey: constant.KeyEnablePrimaryColorTag,
+    defaultValue: false,
+    type: "boolean"
+  },
+  {
     frontendPath: "post.page404.defaultImage",
     backendKey: constant.Key404PageDefaultImage,
     defaultValue: "/static/img/background-effect.gif",
@@ -507,6 +734,12 @@ const postDescriptors: SettingDescriptor[] = [
     type: "number"
   },
   {
+    frontendPath: "post.codeBlock.macStyle",
+    backendKey: constant.KeyPostCodeBlockMacStyle,
+    defaultValue: false,
+    type: "boolean"
+  },
+  {
     frontendPath: "post.copy.enable",
     backendKey: constant.KeyPostCopyEnable,
     defaultValue: true,
@@ -537,6 +770,49 @@ const postDescriptors: SettingDescriptor[] = [
     backendKey: constant.KeyPostTocHashUpdateMode,
     defaultValue: "replace",
     type: "string"
+  },
+  {
+    frontendPath: "post.waves.enable",
+    backendKey: constant.KeyPostWavesEnable,
+    defaultValue: true,
+    type: "boolean"
+  },
+  {
+    frontendPath: "post.copyright.originalTemplate",
+    backendKey: constant.KeyPostCopyrightOriginalTemplate,
+    defaultValue: "",
+    type: "string"
+  },
+  {
+    frontendPath: "post.copyright.reprintTemplateWithUrl",
+    backendKey: constant.KeyPostCopyrightReprintTemplateWithUrl,
+    defaultValue: "",
+    type: "string"
+  },
+  {
+    frontendPath: "post.copyright.reprintTemplateWithoutUrl",
+    backendKey: constant.KeyPostCopyrightReprintTemplateWithoutUrl,
+    defaultValue: "",
+    type: "string"
+  },
+  // 版权区域按钮全局开关
+  {
+    frontendPath: "post.copyright.showRewardButton",
+    backendKey: constant.KeyPostShowRewardButton,
+    defaultValue: true,
+    type: "boolean"
+  },
+  {
+    frontendPath: "post.copyright.showShareButton",
+    backendKey: constant.KeyPostShowShareButton,
+    defaultValue: true,
+    type: "boolean"
+  },
+  {
+    frontendPath: "post.copyright.showSubscribeButton",
+    backendKey: constant.KeyPostShowSubscribeButton,
+    defaultValue: true,
+    type: "boolean"
   },
   {
     frontendPath: "post.cdn.enable",
@@ -657,6 +933,43 @@ const postDescriptors: SettingDescriptor[] = [
   {
     frontendPath: "post.reviewNotify.mailTemplateRejected",
     backendKey: constant.KeyArticleReviewMailTemplateRejected,
+    defaultValue: "",
+    type: "string"
+  },
+  // --- 文章订阅配置 ---
+  {
+    frontendPath: "post.subscribe.enable",
+    backendKey: constant.KeyPostSubscribeEnable,
+    defaultValue: false,
+    type: "boolean"
+  },
+  {
+    frontendPath: "post.subscribe.buttonText",
+    backendKey: constant.KeyPostSubscribeButtonText,
+    defaultValue: "订阅",
+    type: "string"
+  },
+  {
+    frontendPath: "post.subscribe.dialogTitle",
+    backendKey: constant.KeyPostSubscribeDialogTitle,
+    defaultValue: "订阅博客更新",
+    type: "string"
+  },
+  {
+    frontendPath: "post.subscribe.dialogDesc",
+    backendKey: constant.KeyPostSubscribeDialogDesc,
+    defaultValue: "输入您的邮箱，获取最新文章推送",
+    type: "string"
+  },
+  {
+    frontendPath: "post.subscribe.mailSubject",
+    backendKey: constant.KeyPostSubscribeMailSubject,
+    defaultValue: "",
+    type: "string"
+  },
+  {
+    frontendPath: "post.subscribe.mailTemplate",
+    backendKey: constant.KeyPostSubscribeMailTemplate,
     defaultValue: "",
     type: "string"
   }
@@ -1054,6 +1367,12 @@ const aboutPageDescriptors: SettingDescriptor[] = [
     backendKey: constant.KeyAboutPageEnableCustomCode,
     defaultValue: true,
     type: "boolean"
+  },
+  {
+    frontendPath: "frontDesk.about.enableComment",
+    backendKey: constant.KeyAboutPageEnableComment,
+    defaultValue: true,
+    type: "boolean"
   }
 ];
 
@@ -1142,6 +1461,19 @@ const frontDeskDescriptors: SettingDescriptor[] = [
     defaultValue: "",
     type: "string"
   },
+  // --- Uptime Kuma 状态监控配置 ---
+  {
+    frontendPath: "frontDesk.home.footerUptimeKumaEnable",
+    backendKey: constant.KeyFooterUptimeKumaEnable,
+    defaultValue: false,
+    type: "boolean"
+  },
+  {
+    frontendPath: "frontDesk.home.footerUptimeKumaPageURL",
+    backendKey: constant.KeyFooterUptimeKumaPageURL,
+    defaultValue: "",
+    type: "string"
+  },
   {
     frontendPath: "frontDesk.home.navTravel",
     backendKey: constant.KeyHeaderNavTravel,
@@ -1213,57 +1545,73 @@ const frontDeskDescriptors: SettingDescriptor[] = [
     backendKey: constant.KeyHeaderNavMenu,
     defaultValue: [],
     type: "json"
-  },
+  }
+];
+
+// --- 音乐页面配置 ---
+const musicPageDescriptors: SettingDescriptor[] = [
   {
-    frontendPath: "frontDesk.home.music.player.enable",
+    frontendPath: "frontDesk.music.enable",
     backendKey: constant.KeyMusicPlayerEnable,
     defaultValue: true,
     type: "boolean"
   },
   {
-    frontendPath: "frontDesk.home.music.player.playlist_id",
-    backendKey: constant.KeyMusicPlayerPlaylistID,
-    defaultValue: "8152976493",
-    type: "string"
-  },
-  {
-    frontendPath: "frontDesk.home.music.player.custom_playlist",
-    backendKey: constant.KeyMusicPlayerCustomPlaylist,
+    frontendPath: "frontDesk.music.capsule.playlist_id",
+    backendKey: constant.KeyMusicCapsulePlaylistID,
     defaultValue: "",
     type: "string"
   },
   {
-    frontendPath: "frontDesk.home.music.api.base_url",
+    frontendPath: "frontDesk.music.capsule.custom_playlist",
+    backendKey: constant.KeyMusicCapsuleCustomPlaylist,
+    defaultValue: "",
+    type: "string"
+  },
+  {
+    frontendPath: "frontDesk.music.page.playlist_id",
+    backendKey: constant.KeyMusicPagePlaylistID,
+    defaultValue: "8152976493",
+    type: "string"
+  },
+  {
+    frontendPath: "frontDesk.music.page.custom_playlist",
+    backendKey: constant.KeyMusicPageCustomPlaylist,
+    defaultValue: "",
+    type: "string"
+  },
+  {
+    frontendPath: "frontDesk.music.api.base_url",
     backendKey: constant.KeyMusicAPIBaseURL,
     defaultValue: "https://metings.qjqq.cn",
     type: "string"
   },
   {
-    frontendPath: "frontDesk.home.music.vinyl.background",
+    frontendPath: "frontDesk.music.vinyl.background",
     backendKey: constant.KeyMusicVinylBackground,
     defaultValue: "/static/img/music-vinyl-background.png",
     type: "string"
   },
   {
-    frontendPath: "frontDesk.home.music.vinyl.outer",
+    frontendPath: "frontDesk.music.vinyl.outer",
     backendKey: constant.KeyMusicVinylOuter,
     defaultValue: "/static/img/music-vinyl-outer.png",
     type: "string"
   },
   {
-    frontendPath: "frontDesk.home.music.vinyl.inner",
+    frontendPath: "frontDesk.music.vinyl.inner",
     backendKey: constant.KeyMusicVinylInner,
     defaultValue: "/static/img/music-vinyl-inner.png",
     type: "string"
   },
   {
-    frontendPath: "frontDesk.home.music.vinyl.needle",
+    frontendPath: "frontDesk.music.vinyl.needle",
     backendKey: constant.KeyMusicVinylNeedle,
     defaultValue: "/static/img/music-vinyl-needle.png",
     type: "string"
   },
   {
-    frontendPath: "frontDesk.home.music.vinyl.groove",
+    frontendPath: "frontDesk.music.vinyl.groove",
     backendKey: constant.KeyMusicVinylGroove,
     defaultValue: "/static/img/music-vinyl-groove.png",
     type: "string"
@@ -1328,6 +1676,12 @@ const sidebarDescriptors: SettingDescriptor[] = [
   {
     frontendPath: "frontDesk.sidebar.wechatBlurredBackground",
     backendKey: constant.KeySidebarWechatBlurredBackground,
+    defaultValue: "",
+    type: "string"
+  },
+  {
+    frontendPath: "frontDesk.sidebar.wechatLink",
+    backendKey: constant.KeySidebarWechatLink,
     defaultValue: "",
     type: "string"
   },
@@ -1433,6 +1787,21 @@ const sidebarDescriptors: SettingDescriptor[] = [
     backendKey: constant.KeySidebarTocCollapseMode,
     defaultValue: false,
     type: "boolean"
+  },
+  {
+    frontendPath: "frontDesk.sidebar.docSidebarLinks",
+    backendKey: constant.KeySidebarDocLinks,
+    defaultValue: [
+      {
+        title: "博客",
+        link: "/",
+        icon: "ri:external-link-line",
+        external: false
+      }
+    ],
+    type: "json",
+    label: "文档模式侧边栏链接",
+    searchKeywords: ["文档", "侧边栏", "链接", "导航"]
   }
 ];
 
@@ -2526,6 +2895,143 @@ const aiPodcastDescriptors: SettingDescriptor[] = [
   }
 ];
 
+// --- AI 助手（知识库问答）配置描述符 - PRO 专属 ---
+const aiAssistantDescriptors: SettingDescriptor[] = [
+  {
+    frontendPath: "ai.assistant.enable",
+    backendKey: constant.KeyAIAssistantEnable,
+    defaultValue: false,
+    type: "boolean",
+    label: "启用 AI 助手",
+    searchKeywords: ["知识库", "问答", "智能"]
+  },
+  {
+    frontendPath: "ai.assistant.name",
+    backendKey: constant.KeyAIAssistantName,
+    defaultValue: "AI 助手",
+    type: "string",
+    label: "助手名称"
+  },
+  {
+    frontendPath: "ai.assistant.welcome",
+    backendKey: constant.KeyAIAssistantWelcome,
+    defaultValue: "如果有问题欢迎问我哦！",
+    type: "string",
+    label: "欢迎语"
+  },
+  {
+    frontendPath: "ai.assistant.suggestions",
+    backendKey: constant.KeyAIAssistantSuggestions,
+    defaultValue: ["你是谁？", "博客有哪些功能？", "如何使用Anheyu-app?"],
+    type: "json",
+    label: "预设问题"
+  },
+  {
+    frontendPath: "ai.assistant.embeddingProvider",
+    backendKey: constant.KeyAIAssistantEmbeddingProvider,
+    defaultValue: "siliconflow",
+    type: "string",
+    label: "Embedding 服务提供者"
+  },
+  {
+    frontendPath: "ai.assistant.embeddingApiKey",
+    backendKey: constant.KeyAIAssistantEmbeddingApiKey,
+    defaultValue: "",
+    type: "string",
+    label: "Embedding API Key"
+  },
+  {
+    frontendPath: "ai.assistant.embeddingModel",
+    backendKey: constant.KeyAIAssistantEmbeddingModel,
+    defaultValue: "BAAI/bge-m3",
+    type: "string",
+    label: "Embedding 模型"
+  },
+  {
+    frontendPath: "ai.assistant.vectorStore",
+    backendKey: constant.KeyAIAssistantVectorStore,
+    defaultValue: "embedded",
+    type: "string",
+    label: "向量存储后端"
+  }
+];
+
+// --- 相册页配置描述符 ---
+const albumDescriptors: SettingDescriptor[] = [
+  {
+    frontendPath: "frontDesk.album.banner.background",
+    backendKey: constant.KeyAlbumPageBannerBackground,
+    defaultValue: "",
+    type: "string"
+  },
+  {
+    frontendPath: "frontDesk.album.banner.title",
+    backendKey: constant.KeyAlbumPageBannerTitle,
+    defaultValue: "相册",
+    type: "string"
+  },
+  {
+    frontendPath: "frontDesk.album.banner.description",
+    backendKey: constant.KeyAlbumPageBannerDescription,
+    defaultValue: "记录生活的美好瞬间",
+    type: "string"
+  },
+  {
+    frontendPath: "frontDesk.album.banner.tip",
+    backendKey: constant.KeyAlbumPageBannerTip,
+    defaultValue: "分享精彩图片",
+    type: "string"
+  },
+  {
+    frontendPath: "frontDesk.album.layoutMode",
+    backendKey: constant.KeyAlbumPageLayoutMode,
+    defaultValue: "grid",
+    type: "string"
+  },
+  {
+    frontendPath: "frontDesk.album.waterfall.columnCount",
+    backendKey: constant.KeyAlbumPageWaterfallColumnCount,
+    defaultValue: { large: 4, medium: 3, small: 1 },
+    type: "json"
+  },
+  {
+    frontendPath: "frontDesk.album.waterfall.gap",
+    backendKey: constant.KeyAlbumPageWaterfallGap,
+    defaultValue: 16,
+    type: "number"
+  },
+  {
+    frontendPath: "frontDesk.album.apiURL",
+    backendKey: constant.KeyAlbumApiURL,
+    defaultValue: "",
+    type: "string"
+  },
+  {
+    frontendPath: "frontDesk.album.defaultThumbParam",
+    backendKey: constant.KeyAlbumDefaultThumbParam,
+    defaultValue: "",
+    type: "string"
+  },
+  {
+    frontendPath: "frontDesk.album.defaultBigParam",
+    backendKey: constant.KeyAlbumDefaultBigParam,
+    defaultValue: "",
+    type: "string"
+  },
+  {
+    frontendPath: "frontDesk.album.pageSize",
+    backendKey: constant.KeyAlbumPageSize,
+    defaultValue: 24,
+    type: "number"
+  },
+  {
+    frontendPath: "frontDesk.album.enableComment",
+    backendKey: constant.KeyAlbumPageEnableComment,
+    defaultValue: false,
+    type: "boolean"
+  }
+];
+
 const seoDescriptors: SettingDescriptor[] = [
   {
     frontendPath: "frontDesk.seo.autoSubmit",
@@ -2595,6 +3101,98 @@ const seoDescriptors: SettingDescriptor[] = [
   }
 ];
 
+// --- Cloudflare Turnstile 人机验证配置描述符（保留兼容性） ---
+const turnstileDescriptors: SettingDescriptor[] = [
+  {
+    frontendPath: "frontDesk.turnstile.enable",
+    backendKey: constant.KeyTurnstileEnable,
+    defaultValue: false,
+    type: "boolean",
+    label: "启用 Turnstile 人机验证（已废弃）",
+    searchKeywords: ["Turnstile", "Cloudflare", "人机验证", "登录", "安全"]
+  },
+  {
+    frontendPath: "frontDesk.turnstile.siteKey",
+    backendKey: constant.KeyTurnstileSiteKey,
+    defaultValue: "",
+    type: "string",
+    label: "Turnstile Site Key",
+    searchKeywords: ["Turnstile", "公钥", "前端"]
+  },
+  {
+    frontendPath: "frontDesk.turnstile.secretKey",
+    backendKey: constant.KeyTurnstileSecretKey,
+    defaultValue: "",
+    type: "string",
+    label: "Turnstile Secret Key",
+    searchKeywords: ["Turnstile", "私钥", "后端"]
+  }
+];
+
+// --- 统一人机验证配置描述符 ---
+const captchaDescriptors: SettingDescriptor[] = [
+  // 验证方式选择
+  {
+    frontendPath: "frontDesk.captcha.provider",
+    backendKey: constant.KeyCaptchaProvider,
+    defaultValue: "none",
+    type: "string",
+    label: "人机验证方式",
+    searchKeywords: ["人机验证", "验证码", "Turnstile", "极验", "GeeTest"]
+  },
+  // Turnstile 配置（通过 captcha 路径）
+  {
+    frontendPath: "frontDesk.captcha.turnstile.siteKey",
+    backendKey: constant.KeyTurnstileSiteKey,
+    defaultValue: "",
+    type: "string",
+    label: "Turnstile Site Key",
+    searchKeywords: ["Turnstile", "Cloudflare", "公钥"]
+  },
+  {
+    frontendPath: "frontDesk.captcha.turnstile.secretKey",
+    backendKey: constant.KeyTurnstileSecretKey,
+    defaultValue: "",
+    type: "string",
+    label: "Turnstile Secret Key",
+    searchKeywords: ["Turnstile", "Cloudflare", "私钥"]
+  },
+  // 极验 GeeTest 配置
+  {
+    frontendPath: "frontDesk.captcha.geetest.captchaId",
+    backendKey: constant.KeyGeetestCaptchaId,
+    defaultValue: "",
+    type: "string",
+    label: "极验 Captcha ID",
+    searchKeywords: ["极验", "GeeTest", "验证 ID", "公钥"]
+  },
+  {
+    frontendPath: "frontDesk.captcha.geetest.captchaKey",
+    backendKey: constant.KeyGeetestCaptchaKey,
+    defaultValue: "",
+    type: "string",
+    label: "极验 Captcha Key",
+    searchKeywords: ["极验", "GeeTest", "验证 Key", "私钥"]
+  },
+  // 系统图形验证码配置
+  {
+    frontendPath: "frontDesk.captcha.imageCaptcha.length",
+    backendKey: constant.KeyImageCaptchaLength,
+    defaultValue: 4,
+    type: "number",
+    label: "验证码长度",
+    searchKeywords: ["验证码", "图形验证码", "长度"]
+  },
+  {
+    frontendPath: "frontDesk.captcha.imageCaptcha.expire",
+    backendKey: constant.KeyImageCaptchaExpire,
+    defaultValue: 300,
+    type: "number",
+    label: "验证码过期时间",
+    searchKeywords: ["验证码", "图形验证码", "过期"]
+  }
+];
+
 export const allSettingDescriptors = [
   ...siteDescriptors,
   ...pageDescriptors,
@@ -2604,6 +3202,7 @@ export const allSettingDescriptors = [
   ...recentCommentsDescriptors,
   ...aboutPageDescriptors,
   ...frontDeskDescriptors,
+  ...musicPageDescriptors,
   ...sidebarDescriptors,
   ...commentDescriptors,
   ...emailDescriptors,
@@ -2615,8 +3214,12 @@ export const allSettingDescriptors = [
   ...logtoDescriptors,
   ...oidcDescriptors,
   ...rainbowDescriptors,
+  ...albumDescriptors,
   ...seoDescriptors,
   ...aiDescriptors,
   ...aiWritingDescriptors,
-  ...aiPodcastDescriptors
+  ...aiPodcastDescriptors,
+  ...aiAssistantDescriptors,
+  ...turnstileDescriptors,
+  ...captchaDescriptors
 ];

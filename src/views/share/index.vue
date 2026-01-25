@@ -1485,33 +1485,43 @@ const handleCreatePayment = async (provider: "ALIPAY" | "WECHAT") => {
       const orderData = response.data;
       currentOrderNo.value = orderData.order_no;
 
-      // 根据支付方式处理二维码
-      if (provider === "ALIPAY") {
-        // 支付宝：后端返回的是当面付链接，前端生成二维码
-        const paymentUrl = orderData.payment_result.qr_code || "";
+      // 处理二维码
+      const qrCodeContent = orderData.payment_result.qr_code || "";
+      if (qrCodeContent) {
+        // 判断 qr_code 的内容类型
+        // 如果是 URL（http/https/weixin 等协议）或普通字符串，需要通过 QRCode 库生成二维码图片
+        // 如果是 base64 图片数据，则直接使用
+        const isBase64Image =
+          qrCodeContent.startsWith("data:image/") ||
+          /^[A-Za-z0-9+/]+=*$/.test(qrCodeContent.replace(/\s/g, ""));
+        const isUrl =
+          qrCodeContent.startsWith("http://") ||
+          qrCodeContent.startsWith("https://") ||
+          qrCodeContent.startsWith("weixin://");
 
-        try {
-          // 使用 qrcode 库生成二维码图片
-          const qrCodeDataUrl = await QRCode.toDataURL(paymentUrl, {
-            width: 200,
-            margin: 1,
-            color: {
-              dark: "#000000",
-              light: "#FFFFFF"
-            }
-          });
-          paymentQrCode.value = qrCodeDataUrl;
-        } catch (qrError) {
-          console.error("生成支付宝二维码失败:", qrError);
-          ElMessage.error("生成支付二维码失败");
-          return;
+        if (isBase64Image && !isUrl) {
+          // 是 base64 图片数据，直接使用（原生微信支付返回的二维码）
+          paymentQrCode.value = qrCodeContent.startsWith("data:")
+            ? qrCodeContent
+            : `data:image/png;base64,${qrCodeContent}`;
+        } else {
+          // 是 URL 或支付链接字符串，需要生成二维码图片（支付宝当面付或易支付返回的链接）
+          try {
+            const qrCodeDataUrl = await QRCode.toDataURL(qrCodeContent, {
+              width: 200,
+              margin: 1,
+              color: {
+                dark: "#000000",
+                light: "#FFFFFF"
+              }
+            });
+            paymentQrCode.value = qrCodeDataUrl;
+          } catch (qrError) {
+            console.error("生成支付二维码失败:", qrError);
+            ElMessage.error("生成支付二维码失败");
+            return;
+          }
         }
-      } else {
-        // 微信：后端返回的是Base64编码的二维码图片数据，需要加上data URL前缀
-        const base64Data = orderData.payment_result.qr_code || "";
-        paymentQrCode.value = base64Data
-          ? `data:image/png;base64,${base64Data}`
-          : "";
       }
 
       // 切换到二维码步骤
@@ -1537,9 +1547,7 @@ const handleConfirmPaymentMethod = () => {
 };
 
 // 处理选择支付方式
-const handleSelectPaymentMethod = async (
-  provider: "ALIPAY" | "WECHAT"
-) => {
+const handleSelectPaymentMethod = async (provider: "ALIPAY" | "WECHAT") => {
   // 如果正在加载中，禁止重复点击
   if (paymentLoading.value) return;
 

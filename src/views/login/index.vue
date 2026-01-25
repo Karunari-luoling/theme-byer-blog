@@ -21,13 +21,15 @@ import { getAuthorizeUrl } from "@/api/oauth";
 
 // 1. 导入所有子组件
 import CheckEmailForm from "./components/CheckEmailForm.vue";
+import WechatQRCodeLoginDialog from "@/components/WechatQRCodeLoginDialog/index.vue";
 import LoginForm from "./components/LoginForm.vue";
 import RegisterPrompt from "./components/RegisterPrompt.vue";
 import RegisterForm from "./components/RegisterForm.vue";
 import ForgotPasswordForm from "./components/ForgotPasswordForm.vue";
 import ResetPasswordForm from "./components/ResetPasswordForm.vue";
 import ActivatePrompt from "./components/ActivatePrompt.vue";
-import WechatQRCodeLoginDialog from "@/components/WechatQRCodeLoginDialog/index.vue";
+import CaptchaVerify from "@/components/CaptchaVerify/index.vue";
+import type { CaptchaParams } from "@/components/CaptchaVerify/index.vue";
 
 defineOptions({ name: "Login" });
 
@@ -36,6 +38,36 @@ const router = useRouter();
 const route = useRoute();
 const { dataTheme, dataThemeChange } = useDataThemeChange();
 const { enableRegistration } = storeToRefs(siteConfigStore);
+
+// 人机验证相关
+const captchaRef = ref<InstanceType<typeof CaptchaVerify>>();
+const captchaParams = ref<CaptchaParams>({});
+const captchaReset = ref(false);
+
+// 判断是否启用了人机验证
+const isCaptchaEnabled = computed(() => {
+  return captchaRef.value?.isEnabled ?? false;
+});
+
+// 人机验证成功回调
+const onCaptchaVerified = (params: CaptchaParams) => {
+  captchaParams.value = params;
+};
+
+// 人机验证错误回调
+const onCaptchaError = () => {
+  captchaParams.value = {};
+  message("人机验证加载失败，请刷新页面重试", { type: "error" });
+};
+
+// 重置人机验证
+const resetCaptcha = () => {
+  captchaParams.value = {};
+  captchaReset.value = true;
+  nextTick(() => {
+    captchaReset.value = false;
+  });
+};
 
 // 让 siteIcon 依赖于 dataTheme，实现日间/夜间 Logo 自动切换
 const siteIcon = computed(() => {
@@ -168,56 +200,103 @@ const apiHandlers = {
     return res.code === 200 && res.data.exists;
   },
   login: async () => {
-    await useUserStoreHook().loginByEmail({
-      email: form.email,
-      password: form.password
-    });
-
-    // 等待路由初始化
-    await initRouter();
-
-    // 根据用户角色决定跳转位置
-    const userStore = useUserStoreHook();
-    const isAdmin = userStore.roles.includes("1"); // 1 是管理员组ID
-
-    if (isAdmin) {
-      // 管理员跳转到后台首页
-      await router.replace("/admin/dashboard");
-    } else {
-      // 普通用户跳转到前台首页
-      await router.replace("/");
-    }
-
-    message("登录成功", { type: "success" });
-  },
-  register: async () => {
-    const res = await useUserStoreHook().registeredUser({
-      email: form.email,
-      nickname: form.nickname,
-      password: form.password,
-      repeat_password: form.confirmPassword
-    });
-    if (res.code === 200) {
-      if (res.data?.activation_required) {
-        switchStep("activate-prompt", "next");
-        message("注册成功，请查收激活邮件", { type: "success" });
-      } else {
-        switchStep("login-password", "prev");
-        message("注册成功，请登录", { type: "success" });
-      }
-    } else {
-      message(res.message || "注册失败", { type: "error" });
-    }
-  },
-  sendResetEmail: async (payload: { captcha: string; captchaCode: string }) => {
-    if (payload.captcha.toLowerCase() !== payload.captchaCode.toLowerCase()) {
-      message("验证码不正确", { type: "error" });
-      forgotPasswordFormRef.value?.refreshCaptcha();
+    // 检查人机验证
+    if (isCaptchaEnabled.value && !captchaRef.value?.isVerified) {
+      message("请完成人机验证", { type: "warning" });
       return;
     }
+
+    try {
+      await useUserStoreHook().loginByEmail({
+        email: form.email,
+        password: form.password,
+        ...captchaParams.value
+      });
+
+      // 等待路由初始化
+      await initRouter();
+
+      // 根据用户角色决定跳转位置
+      const userStore = useUserStoreHook();
+      const isAdmin = userStore.roles.includes("1"); // 1 是管理员组ID
+
+      if (isAdmin) {
+        // 管理员跳转到后台首页
+        await router.replace("/admin/dashboard");
+      } else {
+        // 普通用户跳转到前台首页
+        await router.replace("/");
+      }
+
+      message("登录成功", { type: "success" });
+    } finally {
+      // 无论登录成功还是失败，都重置验证码（极验 pass_token 只能使用一次）
+      resetCaptcha();
+    }
+  },
+  register: async () => {
+    // 检查人机验证
+    if (isCaptchaEnabled.value && !captchaRef.value?.isVerified) {
+      message("请完成人机验证", { type: "warning" });
+      return;
+    }
+
+    try {
+      const res = await useUserStoreHook().registeredUser({
+        email: form.email,
+        nickname: form.nickname,
+        password: form.password,
+        repeat_password: form.confirmPassword,
+        ...captchaParams.value
+      });
+
+      // 注册成功后重置验证码
+      resetCaptcha();
+      if (res.code === 200) {
+        if (res.data?.activation_required) {
+          switchStep("activate-prompt", "next");
+          message("注册成功，请查收激活邮件", { type: "success" });
+        } else {
+          switchStep("login-password", "prev");
+          message("注册成功，请登录", { type: "success" });
+        }
+      } else {
+        message(res.message || "注册失败", { type: "error" });
+      }
+    } catch (error: any) {
+      // 如果是后端返回的错误（包含 code 和 message），显示后端的错误信息
+      if (error?.code && error?.message) {
+        message(error.message, { type: "error" });
+      } else if (error?.message) {
+        // 如果是前端抛出的 Error 对象
+        message(error.message, { type: "error" });
+      } else {
+        // 其他未知错误
+        message("注册失败，请稍后重试", { type: "error" });
+      }
+      // 重新抛出错误，让 handleSubmit 处理 loading 状态
+      throw error;
+    }
+  },
+  sendResetEmail: async (payload: {
+    captchaParams: Record<string, string>;
+    isCaptchaEnabled: boolean;
+    isVerified: boolean;
+  }) => {
+    // 检查人机验证
+    if (payload.isCaptchaEnabled && !payload.isVerified) {
+      message("请完成人机验证", { type: "warning" });
+      return;
+    }
+
     const res = await useUserStoreHook().sendPasswordResetEmail({
-      email: form.email
+      email: form.email,
+      ...payload.captchaParams
     });
+
+    // 发送后重置验证码
+    forgotPasswordFormRef.value?.refreshCaptcha();
+
     if (res.code === 200) {
       message(res.message, { type: "success" });
       switchStep("check-email", "prev");
@@ -338,7 +417,11 @@ const eventHandlers = {
     handleSubmit(() => formRef.value!.validate(), apiHandlers.login),
   onRegister: () =>
     handleSubmit(() => formRef.value!.validate(), apiHandlers.register),
-  onForgotPassword: (payload: { captcha: string; captchaCode: string }) =>
+  onForgotPassword: (payload: {
+    captchaParams: Record<string, string>;
+    isCaptchaEnabled: boolean;
+    isVerified: boolean;
+  }) =>
     handleSubmit(
       () => formRef.value!.validateField("email"),
       () => apiHandlers.sendResetEmail(payload)
@@ -405,6 +488,15 @@ onBeforeUnmount(() =>
       </div>
 
       <el-form ref="formRef" :model="form" :rules="rules" size="large">
+        <!-- 人机验证 - 在登录和注册步骤显示 -->
+        <CaptchaVerify
+          v-if="step === 'login-password' || step === 'register-form'"
+          ref="captchaRef"
+          :reset="captchaReset"
+          @verified="onCaptchaVerified"
+          @error="onCaptchaError"
+        />
+
         <div class="relative overflow-hidden">
           <transition
             :name="transitionName"

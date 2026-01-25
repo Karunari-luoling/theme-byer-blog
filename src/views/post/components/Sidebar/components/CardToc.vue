@@ -12,9 +12,11 @@ import type { Ref } from "vue";
 import { useSiteConfigStore } from "@/store/modules/siteConfig";
 
 interface TocItem {
-  id: string;
+  id: string; // 原始 HTML 中的 ID，用于滚动定位
+  uniqueId: string; // 唯一标识符，用于 Vue key 和激活状态比较
   text: string;
   level: number;
+  index: number; // 在原始数组中的索引，用于定位 DOM 元素
 }
 
 defineOptions({
@@ -40,6 +42,9 @@ const activeTocId = ref<string | null>(null);
 
 const isClickScrolling = ref(false);
 let scrollTimer: number | null = null;
+let hashUpdateTimer: number | null = null;
+let headingElements: HTMLElement[] = [];
+let rafId: number | null = null;
 
 // 获取目录折叠模式配置
 const tocCollapseMode = computed(() => {
@@ -62,13 +67,13 @@ const visibleTocItems = computed(() => {
   }
 
   const items = tocItems.value;
-  const activeId = activeTocId.value;
+  const activeUniqueId = activeTocId.value;
   const visibleItems: TocItem[] = [];
 
-  // 找到当前激活项的索引
+  // 找到当前激活项的索引（使用 uniqueId 进行匹配）
   let activeIndex = -1;
-  if (activeId) {
-    activeIndex = items.findIndex(item => item.id === activeId);
+  if (activeUniqueId) {
+    activeIndex = items.findIndex(item => item.uniqueId === activeUniqueId);
   }
 
   // 获取最小级别（通常是H2）
@@ -198,18 +203,19 @@ function isSiblingOf(
   return true;
 }
 
-const scrollToHeading = (event: MouseEvent, id: string) => {
+const scrollToHeading = (event: MouseEvent, item: TocItem) => {
   event.preventDefault();
-  activeTocId.value = id;
+  activeTocId.value = item.uniqueId;
 
   // 根据配置决定是否更新URL Hash
   if (tocHashUpdateMode.value !== "none") {
-    history.replaceState(history.state, "", `#${id}`);
+    history.replaceState(history.state, "", `#${item.id}`);
   }
 
   isClickScrolling.value = true;
 
-  const headingElement = document.getElementById(id);
+  // 使用 index 找到正确的 DOM 元素（处理重复 ID 的情况）
+  const headingElement = getHeadingElementByIndex(item.index);
   if (headingElement) {
     const rect = headingElement.getBoundingClientRect();
     const absoluteTop = rect.top + window.scrollY;
@@ -218,6 +224,110 @@ const scrollToHeading = (event: MouseEvent, id: string) => {
       top: top,
       behavior: "smooth"
     });
+  }
+};
+
+// 根据索引获取标题元素
+const getHeadingElementByIndex = (index: number): HTMLElement | null => {
+  if (headingElements.length > 0) {
+    return headingElements[index] || null;
+  }
+  const headingSelector = "h1[id], h2[id], h3[id], h4[id], h5[id], h6[id]";
+  const contentEl = document.querySelector(".post-content");
+  if (!contentEl) {
+    const allHeadings = document.querySelectorAll(headingSelector);
+    return allHeadings[index] as HTMLElement | null;
+  }
+  const headings = contentEl.querySelectorAll(headingSelector);
+  return headings[index] as HTMLElement | null;
+};
+
+// 初始化标题元素引用
+const initHeadingElements = () => {
+  // 获取标题元素 - 选择所有 h1-h6，不要求有 id
+  const headingSelector = "h1, h2, h3, h4, h5, h6";
+  const contentEl = document.querySelector(".post-content");
+  const allHeadings = Array.from(
+    (contentEl || document).querySelectorAll(headingSelector)
+  );
+
+  // 过滤掉空标题，只保留有文本内容的
+  headingElements = allHeadings.filter(el =>
+    el.textContent?.trim()
+  ) as HTMLElement[];
+
+  if (headingElements.length === 0) return;
+
+  // 为没有 id 的标题动态添加 id
+  headingElements.forEach((el, index) => {
+    if (!el.id) {
+      const text = el.textContent?.trim().replace(/\s+/g, "-").toLowerCase();
+      el.id = text || `heading-${index}`;
+    }
+  });
+
+  // 初始化时计算一次激活状态
+  updateActiveHeading();
+};
+
+// 使用 requestAnimationFrame 节流的滚动处理
+const onScroll = () => {
+  if (rafId !== null) return;
+
+  rafId = requestAnimationFrame(() => {
+    rafId = null;
+
+    if (isClickScrolling.value) return;
+
+    updateActiveHeading();
+  });
+};
+
+// 更新激活的标题
+const updateActiveHeading = () => {
+  if (headingElements.length === 0) return;
+
+  let activeIndex = -1;
+  const headerOffset = 100; // header 高度 + 一些余量
+
+  // 找到当前滚动位置下最近的标题
+  for (let i = 0; i < headingElements.length; i++) {
+    const rect = headingElements[i].getBoundingClientRect();
+    if (rect.top <= headerOffset) {
+      activeIndex = i;
+    } else {
+      break;
+    }
+  }
+
+  // 如果没有找到（页面顶部），激活第一个
+  if (activeIndex === -1 && headingElements.length > 0) {
+    activeIndex = 0;
+  }
+
+  if (activeIndex >= 0 && tocItems.value[activeIndex]) {
+    setActiveHeading(activeIndex);
+  }
+};
+
+// 设置激活的标题
+const setActiveHeading = (index: number) => {
+  const item = tocItems.value[index];
+  if (!item) return;
+
+  const newActiveUniqueId = item.uniqueId;
+
+  if (activeTocId.value !== newActiveUniqueId) {
+    activeTocId.value = newActiveUniqueId;
+
+    // 延迟更新 URL hash（防抖 500ms）
+    if (tocHashUpdateMode.value !== "none") {
+      const newOriginalId = item.id;
+      if (hashUpdateTimer) clearTimeout(hashUpdateTimer);
+      hashUpdateTimer = window.setTimeout(() => {
+        history.replaceState(history.state, "", `#${newOriginalId}`);
+      }, 500);
+    }
   }
 };
 
@@ -231,13 +341,29 @@ const parseHeadings = () => {
   const headings = doc.querySelectorAll("h1, h2, h3, h4, h5, h6");
   const newTocItems: TocItem[] = [];
 
+  // 用于跟踪重复 ID 的计数器
+  const idCountMap = new Map<string, number>();
+
+  let index = 0;
   headings.forEach(heading => {
     if (heading.id) {
+      const originalId = heading.id;
+
+      // 计算这个 ID 出现的次数
+      const count = idCountMap.get(originalId) || 0;
+      idCountMap.set(originalId, count + 1);
+
+      // 生成唯一标识符：如果是第一次出现用原始ID，否则添加数字后缀
+      const uniqueId = count === 0 ? originalId : `${originalId}-${count}`;
+
       newTocItems.push({
-        id: heading.id,
+        id: originalId,
+        uniqueId: uniqueId,
         text: heading.textContent || "",
-        level: parseInt(heading.tagName.substring(1), 10)
+        level: parseInt(heading.tagName.substring(1), 10),
+        index: index
       });
+      index++;
     }
   });
   tocItems.value = newTocItems;
@@ -246,44 +372,12 @@ const parseHeadings = () => {
   }
 };
 
-const onScroll = () => {
-  if (isClickScrolling.value) {
-    return;
-  }
-
-  const fixedHeaderHeight = 80;
-  let newActiveId: string | null = null;
-
-  // 使用 tocItems 而不是 allSpyIds，确保只检测标题元素
-  const headingIds = tocItems.value.map(item => item.id);
-
-  // 从前往后遍历，找到最后一个 top <= fixedHeaderHeight 的元素
-  for (let i = 0; i < headingIds.length; i++) {
-    const id = headingIds[i];
-    const element = document.getElementById(id);
-    if (element) {
-      const rect = element.getBoundingClientRect();
-      if (rect.top <= fixedHeaderHeight) {
-        newActiveId = id;
-      }
-    }
-  }
-
-  if (activeTocId.value !== newActiveId) {
-    activeTocId.value = newActiveId;
-    // 根据配置决定是否更新URL Hash
-    if (tocHashUpdateMode.value !== "none") {
-      if (newActiveId) {
-        history.replaceState(history.state, "", `#${newActiveId}`);
-      } else {
-        history.replaceState(
-          history.state,
-          "",
-          window.location.pathname + window.location.search
-        );
-      }
-    }
-  }
+// 滚动结束检测
+const onScrollEnd = () => {
+  if (scrollTimer) clearTimeout(scrollTimer);
+  scrollTimer = window.setTimeout(() => {
+    isClickScrolling.value = false;
+  }, 150);
 };
 
 const updateIndicator = () => {
@@ -335,6 +429,8 @@ watch(
   () => {
     nextTick(() => {
       parseHeadings();
+      // 延迟初始化标题元素，确保 DOM 已渲染
+      setTimeout(initHeadingElements, 300);
     });
   },
   { immediate: true, deep: true }
@@ -355,20 +451,9 @@ watch(visibleTocItems, () => {
   });
 });
 
-let scrollEndHandler: () => void;
-
 onMounted(() => {
-  scrollEndHandler = () => {
-    if (scrollTimer) {
-      clearTimeout(scrollTimer);
-    }
-    scrollTimer = window.setTimeout(() => {
-      isClickScrolling.value = false;
-    }, 150);
-  };
-
   window.addEventListener("scroll", onScroll, { passive: true });
-  window.addEventListener("scroll", scrollEndHandler);
+  window.addEventListener("scroll", onScrollEnd, { passive: true });
 
   nextTick(() => {
     updateIndicator();
@@ -378,9 +463,12 @@ onMounted(() => {
 
 onUnmounted(() => {
   window.removeEventListener("scroll", onScroll);
-  if (scrollEndHandler) {
-    window.removeEventListener("scroll", scrollEndHandler);
+  window.removeEventListener("scroll", onScrollEnd);
+  if (rafId !== null) {
+    cancelAnimationFrame(rafId);
   }
+  if (scrollTimer) clearTimeout(scrollTimer);
+  if (hashUpdateTimer) clearTimeout(hashUpdateTimer);
 });
 
 defineExpose({
@@ -399,15 +487,15 @@ defineExpose({
         <TransitionGroup name="toc-item">
           <li
             v-for="item in visibleTocItems"
-            :key="item.id"
+            :key="item.uniqueId"
             class="toc-item"
             :class="`toc-level-${item.level}`"
           >
             <a
               :href="`#${item.id}`"
               class="toc-link"
-              :class="{ active: activeTocId === item.id }"
-              @click="scrollToHeading($event, item.id)"
+              :class="{ active: activeTocId === item.uniqueId }"
+              @click="scrollToHeading($event, item)"
             >
               <span class="toc-text">{{ item.text }}</span>
             </a>

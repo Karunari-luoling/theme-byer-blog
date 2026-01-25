@@ -1,8 +1,12 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, onMounted } from "vue";
 import ReCol from "@/components/ReCol";
 import { formRules } from "./utils/rule";
 import { FormProps } from "./utils/types";
+import {
+  getAlbumCategoryList,
+  type AlbumCategoryDTO
+} from "@/api/album-category";
 
 const props = withDefaults(defineProps<FormProps>(), {
   formInline: () => ({
@@ -22,15 +26,32 @@ const props = withDefaults(defineProps<FormProps>(), {
     fileSize: 0,
     displayOrder: 0,
     imageTitle: "",
-    description: ""
+    description: "",
+    location: ""
   }),
   categories: () => []
 });
 
 const ruleFormRef = ref();
 const newFormInline = ref(props.formInline);
+const localCategories = ref<AlbumCategoryDTO[]>([]);
 
-console.log("newFormInline", newFormInline.value);
+// 组件内部获取分类数据
+async function loadCategories() {
+  try {
+    const res = await getAlbumCategoryList();
+    const { data } = res;
+    if (data) {
+      localCategories.value = data;
+    }
+  } catch (error) {
+    console.error("加载分类列表失败:", error);
+  }
+}
+
+onMounted(() => {
+  loadCategories();
+});
 
 function getRef() {
   return ruleFormRef.value;
@@ -55,9 +76,10 @@ defineExpose({ getRef });
               placeholder="请选择分类"
               clearable
               class="w-full!"
+              :teleported="false"
             >
               <el-option
-                v-for="category in categories"
+                v-for="category in localCategories"
                 :key="category.id"
                 :label="category.name"
                 :value="category.id"
@@ -89,6 +111,21 @@ defineExpose({ getRef });
               maxlength="1000"
               show-word-limit
             />
+          </el-form-item>
+        </re-col>
+
+        <re-col :value="24" :xs="24" :sm="24">
+          <el-form-item label="拍摄地点" prop="location">
+            <el-input
+              v-model="newFormInline.location"
+              clearable
+              placeholder="请输入拍摄地点（可选）"
+              maxlength="200"
+            >
+              <template #prefix>
+                <i class="anzhiyufont anzhiyu-icon-location-dot" />
+              </template>
+            </el-input>
           </el-form-item>
         </re-col>
 

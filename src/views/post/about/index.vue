@@ -20,6 +20,7 @@ import ComicCard from "./components/ComicCard.vue";
 import LikeTechCard from "./components/LikeTechCard.vue";
 import MusicCard from "./components/MusicCard.vue";
 import RewardCard from "./components/RewardCard.vue";
+import PostComment from "@/views/post/components/PostComment/index.vue";
 
 defineOptions({
   name: "PostAbout"
@@ -48,7 +49,8 @@ const enableConfig = computed(() => {
     comic: config?.comic !== false,
     like_tech: config?.like_tech !== false,
     music: config?.music !== false,
-    custom_code: config?.custom_code !== false
+    custom_code: config?.custom_code !== false,
+    comment: config?.comment !== false
   };
 });
 
@@ -118,8 +120,6 @@ onMounted(async () => {
       <StatisticCard
         v-if="enableConfig.statistic"
         :cover="aboutConfig.statistics_background"
-        link="/statistics"
-        text="更多统计"
       />
       <MapAndInfoCard
         v-if="enableConfig.map_and_info"
@@ -177,6 +177,13 @@ onMounted(async () => {
 
     <!-- 赞赏名单 -->
     <RewardCard />
+
+    <!-- 评论板块 -->
+    <div v-if="enableConfig.comment" class="author-content">
+      <div class="author-content-item single comment-section">
+        <PostComment target-path="/about" />
+      </div>
+    </div>
   </div>
 
   <div v-else class="loading-container">
@@ -209,6 +216,14 @@ onMounted(async () => {
       margin: 0.5rem 0 1rem;
       font-size: 2rem;
     }
+  }
+}
+
+.comment-section {
+  width: 100%;
+
+  :deep(#post-comment) {
+    margin-bottom: 0;
   }
 }
 

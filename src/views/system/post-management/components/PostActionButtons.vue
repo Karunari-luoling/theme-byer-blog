@@ -9,9 +9,10 @@ const props = defineProps<{
   postId?: string;
   postSlug?: string;
   reviewStatus?: "NONE" | "PENDING" | "APPROVED" | "REJECTED";
+  isDoc?: boolean;
 }>();
 
-const emit = defineEmits(["save", "publish"]);
+const emit = defineEmits(["save", "publish", "showHistory"]);
 
 // 是否显示查看文章按钮（编辑模式下有ID就显示）
 const showViewButton = computed(() => {
@@ -44,17 +45,28 @@ const viewButtonTooltip = computed(() => {
 
 // 查看文章
 const viewPost = () => {
-  // 优先使用 abbrlink，如果没有则使用 id
-  const identifier = props.postSlug || props.postId;
-  if (identifier) {
-    // 在新标签页中打开文章
-    window.open(`/posts/${identifier}`, "_blank");
+  if (props.postId) {
+    // 如果是文档类型，跳转到文档详情页
+    if (props.isDoc) {
+      window.open(`/doc/${props.postId}`, "_blank");
+    } else {
+      // 普通文章：优先使用 abbrlink，如果没有则使用 id
+      const identifier = props.postSlug || props.postId;
+      window.open(`/posts/${identifier}`, "_blank");
+    }
   }
 };
 </script>
 
 <template>
   <div class="action-buttons">
+    <el-tooltip
+      v-if="isEditMode && status === 'PUBLISHED'"
+      content="历史版本"
+      placement="bottom"
+    >
+      <el-button :icon="Clock" @click="emit('showHistory')" />
+    </el-tooltip>
     <el-button :loading="isSubmitting" @click="emit('save')"
       >存为草稿</el-button
     >

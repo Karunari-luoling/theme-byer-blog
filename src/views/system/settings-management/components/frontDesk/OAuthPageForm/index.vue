@@ -239,25 +239,19 @@
             >
               <el-option label="自动检测" value="auto">
                 <span>自动检测</span>
-                <span
-                  style="color: var(--anzhiyu-secondtext); font-size: 12px"
-                >
+                <span style="color: var(--anzhiyu-secondtext); font-size: 12px">
                   - 默认使用扫码模式
                 </span>
               </el-option>
               <el-option label="PC端扫码登录" value="qrcode">
                 <span>PC端扫码登录</span>
-                <span
-                  style="color: var(--anzhiyu-secondtext); font-size: 12px"
-                >
+                <span style="color: var(--anzhiyu-secondtext); font-size: 12px">
                   - 适用于电脑浏览器
                 </span>
               </el-option>
               <el-option label="微信内授权登录" value="in_app">
                 <span>微信内授权登录</span>
-                <span
-                  style="color: var(--anzhiyu-secondtext); font-size: 12px"
-                >
+                <span style="color: var(--anzhiyu-secondtext); font-size: 12px">
                   - 仅微信内浏览器可用
                 </span>
               </el-option>
@@ -650,10 +644,6 @@
           </li>
           <li>
             已注册用户可以在<strong>用户中心</strong>绑定/解绑第三方账号，实现多种登录方式
-          </li>
-          <li>
-            详细配置文档请参考：
-            <a href="/docs/oauth" target="_blank">第三方登录配置文档</a>
           </li>
         </ul>
       </el-alert>

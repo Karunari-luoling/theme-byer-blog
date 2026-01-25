@@ -135,7 +135,10 @@ export const useAISummary = (options: UseAISummaryOptions = {}) => {
       isGenerating.value
     );
     if (!validation.valid) {
-      ElMessage.warning(validation.message!);
+      ElMessage.warning({
+        message: validation.message!,
+        customClass: "high-z-index-message"
+      });
       return null;
     }
 
@@ -145,7 +148,10 @@ export const useAISummary = (options: UseAISummaryOptions = {}) => {
       // 检查 AI 配置是否已设置
       const configCheck = await checkAIConfig();
       if (!configCheck.valid) {
-        ElMessage.warning(configCheck.message!);
+        ElMessage.warning({
+          message: configCheck.message!,
+          customClass: "high-z-index-message"
+        });
         return null;
       }
 
@@ -159,7 +165,10 @@ export const useAISummary = (options: UseAISummaryOptions = {}) => {
         // 调用成功回调
         onSuccess?.(aiSummary);
 
-        ElMessage.success("AI摘要生成成功");
+        ElMessage.success({
+          message: "AI摘要生成成功",
+          customClass: "high-z-index-message"
+        });
         return aiSummary;
       } else {
         const errorMsg = result.message || "AI摘要生成失败";
@@ -168,7 +177,10 @@ export const useAISummary = (options: UseAISummaryOptions = {}) => {
         // 调用错误回调
         onError?.(error);
 
-        ElMessage.error(errorMsg);
+        ElMessage.error({
+          message: errorMsg,
+          customClass: "high-z-index-message"
+        });
         return null;
       }
     } catch (error: any) {
@@ -180,7 +192,10 @@ export const useAISummary = (options: UseAISummaryOptions = {}) => {
       // 调用错误回调
       onError?.(wrappedError);
 
-      ElMessage.error(wrappedError.message);
+      ElMessage.error({
+        message: wrappedError.message,
+        customClass: "high-z-index-message"
+      });
       return null;
     } finally {
       isGenerating.value = false;

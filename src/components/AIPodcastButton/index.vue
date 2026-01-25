@@ -232,12 +232,14 @@ interface Props {
   articleTitle?: string;
   contentHtml?: string;
   primaryColor?: string;
+  enableAIPodcast?: boolean; // 文章级别的 AI 播客开关
 }
 
 const props = defineProps<Props>();
 
 // 状态
 const isEnabled = ref(false);
+const isGlobalEnabled = ref(false); // 全局 AI 播客开关
 const isExpanded = ref(false);
 const isLoading = ref(false);
 const isPlaying = ref(false);
@@ -1186,13 +1188,16 @@ const formatBytes = (bytes: number) => {
   return (bytes / (1024 * 1024)).toFixed(2) + " MB";
 };
 
-// 检查是否启用
+// 检查是否启用（需要同时满足：全局开关开启 AND 文章级别开关开启）
 const checkEnabled = async () => {
   try {
     const res = await checkAIPodcastEnabled();
-    isEnabled.value = res.data?.enabled ?? false;
+    isGlobalEnabled.value = res.data?.enabled ?? false;
+    // 只有全局开关和文章级别开关都开启时才显示
+    isEnabled.value = isGlobalEnabled.value && props.enableAIPodcast === true;
   } catch (error) {
     console.error("[AI播客] 检查启用状态失败:", error);
+    isGlobalEnabled.value = false;
     isEnabled.value = false;
   }
 };
@@ -1233,6 +1238,15 @@ const cleanupFooterObserver = () => {
     footerObserver = null;
   }
 };
+
+// 监听文章级别开关变化
+watch(
+  () => props.enableAIPodcast,
+  () => {
+    // 当文章级别开关变化时，重新计算 isEnabled
+    isEnabled.value = isGlobalEnabled.value && props.enableAIPodcast === true;
+  }
+);
 
 // 生命周期
 onMounted(() => {

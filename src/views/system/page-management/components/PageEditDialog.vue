@@ -217,7 +217,8 @@ const handleImageUpload = async (
 ) => {
   const loadingInstance = ElMessage.info({
     message: "正在上传图片...",
-    duration: 0
+    duration: 0,
+    customClass: "high-z-index-message"
   });
   try {
     const urls = await Promise.all(
@@ -231,10 +232,16 @@ const handleImageUpload = async (
       })
     );
     callback(urls);
-    ElMessage.success("图片上传成功！");
+    ElMessage.success({
+      message: "图片上传成功！",
+      customClass: "high-z-index-message"
+    });
   } catch (error: any) {
     console.error("图片上传失败:", error);
-    ElMessage.error(error.message || "图片上传失败，请稍后再试。");
+    ElMessage.error({
+      message: error.message || "图片上传失败，请稍后再试。",
+      customClass: "high-z-index-message"
+    });
   } finally {
     loadingInstance.close();
   }
@@ -250,10 +257,29 @@ const handleEditorSave = async (markdown: string, html: string) => {
 
 // 同步编辑器内容（在保存前调用）
 const syncEditorContent = async () => {
-  if (editorRef.value?.triggerSave) {
+  // 使用异步版本的 triggerSave，等待保存完成
+  if (editorRef.value?.triggerSaveAsync) {
+    try {
+      const { markdown, html } = await editorRef.value.triggerSaveAsync();
+      // 直接使用返回的内容更新表单
+      form.markdown_content = markdown;
+      form.content = html;
+      console.log("[页面编辑] 编辑器内容同步完成", {
+        markdownLength: markdown.length,
+        htmlLength: html.length
+      });
+    } catch (error) {
+      console.error("[页面编辑] 编辑器内容同步失败:", error);
+      // 回退到旧的同步方式
+      if (editorRef.value?.triggerSave) {
+        editorRef.value.triggerSave();
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+    }
+  } else if (editorRef.value?.triggerSave) {
+    // 兼容旧版本：如果 triggerSaveAsync 不存在，使用旧方式
     editorRef.value.triggerSave();
-    // 等待一小段时间确保 handleEditorSave 被调用
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise(resolve => setTimeout(resolve, 500));
   }
 };
 
@@ -289,16 +315,23 @@ const handleSave = async () => {
     }
 
     if (response.code === 200) {
-      ElMessage.success(isEdit.value ? "更新成功" : "创建成功");
+      ElMessage.success({
+        message: isEdit.value ? "更新成功" : "创建成功",
+        customClass: "high-z-index-message"
+      });
       emit("success");
     } else {
-      ElMessage.error(
-        response.message || (isEdit.value ? "更新失败" : "创建失败")
-      );
+      ElMessage.error({
+        message: response.message || (isEdit.value ? "更新失败" : "创建失败"),
+        customClass: "high-z-index-message"
+      });
     }
   } catch (error: any) {
     console.error("保存页面失败:", error);
-    ElMessage.error("保存失败");
+    ElMessage.error({
+      message: "保存失败",
+      customClass: "high-z-index-message"
+    });
   } finally {
     saving.value = false;
   }

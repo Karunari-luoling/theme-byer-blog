@@ -2,7 +2,7 @@
  * @Description: OAuth第三方账号绑定管理组件
  * @Author: 安知鱼
  * @Date: 2025-10-16
- * @LastEditTime: 2025-11-16 22:14:12
+ * @LastEditTime: 2025-12-29 10:13:32
  * @LastEditors: 安知鱼
 -->
 <template>
@@ -226,7 +226,7 @@ const availableProviders = computed<ProviderConfig[]>(() => {
     providers.push({
       key: "oidc",
       name: oauthConfig.value.oidc.display_name || "企业登录",
-      icon: "ri:building-fill",
+      icon: "ri:router-fill",
       color: "#f59e0b",
       enabled: true
     });

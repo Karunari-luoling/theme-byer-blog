@@ -36,7 +36,7 @@ import RelatedPosts from "./components/RelatedPosts/index.vue";
 import CommentBarrage from "./components/CommentBarrage/index.vue";
 import PostComment from "../components/PostComment/index.vue";
 import Sidebar from "../components/Sidebar/index.vue";
-import AIPodcastButton from "@/components/AIPodcastButton/index.vue";
+import AIPodcastPlayer from "@/components/AIPodcastPlayer/index.vue";
 import { useSiteConfigStore } from "@/store/modules/siteConfig";
 import { useUiStore } from "@/store/modules/uiStore";
 import { useUserStore } from "@/store/modules/user";
@@ -89,6 +89,12 @@ const articleWithCommentCount = computed(() => {
 });
 
 const siteConfigStore = useSiteConfigStore();
+
+// 检查波浪区域是否启用（默认为 true）
+const isWavesEnabled = computed(() => {
+  return siteConfigStore.siteConfig?.post?.waves?.enable !== false;
+});
+
 const commentBarrageConfig = computed(() => {
   const siteConfig = siteConfigStore.getSiteConfig;
   if (!siteConfig || !siteConfig.GRAVATAR_URL) {
@@ -108,7 +114,7 @@ const siteName = computed(() => {
 
 // 获取系列文章显示篇数配置
 const seriesPostCount = computed(() => {
-  return siteConfig?.sidebar?.seriesPostCount || 6;
+  return siteConfig?.sidebar?.series?.postCount || 6;
 });
 
 const authorInfoConfig = computed(() => {
@@ -135,9 +141,10 @@ const isPreviewMode = computed(() => {
 usePostCustomHTML();
 
 // Mermaid 虚拟渲染：避免首屏/TOC 解析时一次性解析大量 SVG DOM
-const mermaidVirtualized = computed(() =>
-  virtualizeMermaidBlocks(article.value?.content_html || "")
-);
+const mermaidVirtualized = computed(() => {
+  const html = article.value?.content_html || "";
+  return virtualizeMermaidBlocks(html);
+});
 
 const headingTocItems = ref<{ id: string }[]>([]);
 const commentIds = ref<string[]>([]);
@@ -171,8 +178,19 @@ const useArticleTheme = (articleRef: Ref<Article | null>) => {
   watch(
     () => articleRef.value?.primary_color,
     (newColor, oldColor) => {
+      console.log(
+        "[PostDetail] watch primary_color 触发:",
+        "newColor=",
+        newColor,
+        "oldColor=",
+        oldColor,
+        "previousColor=",
+        previousColor
+      );
+
       // 如果颜色没有变化，跳过处理
       if (newColor === previousColor) {
+        console.log("[PostDetail] 颜色未变化，跳过处理");
         return;
       }
 
@@ -181,8 +199,10 @@ const useArticleTheme = (articleRef: Ref<Article | null>) => {
 
       // 如果新颜色为空，重置到默认主题色
       if (!newColor) {
+        console.log("[PostDetail] 新颜色为空，重置到默认主题色");
         resetThemeToDefault();
       } else {
+        console.log("[PostDetail] 设置文章主题色:", newColor);
         setArticleTheme(newColor);
       }
     },
@@ -200,18 +220,28 @@ const useArticleTheme = (articleRef: Ref<Article | null>) => {
     resetThemeToDefault();
     clearArticleMetaTags();
 
-    // 移除全文解锁事件监听
-    window.removeEventListener(
-      "fullTextUnlocked",
-      handleFullTextUnlocked as EventListener
-    );
-
     // 清空记录
     previousColor = undefined;
   });
 };
 
 useArticleTheme(article);
+
+/**
+ * 处理引用到评论的全局事件
+ */
+const handleQuoteToComment = (event: CustomEvent<{ quoteText: string }>) => {
+  const { quoteText } = event.detail;
+  if (commentRef.value && quoteText) {
+    commentRef.value.setQuoteText(quoteText);
+
+    // 滚动到评论区域
+    const commentSection = document.getElementById("post-comment");
+    if (commentSection) {
+      commentSection.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }
+};
 
 const handleCommentIdsLoaded = (ids: string[]) => {
   commentIds.value = ids;
@@ -679,6 +709,12 @@ onMounted(() => {
     "fullTextUnlocked",
     handleFullTextUnlocked as EventListener
   );
+
+  // 监听引用到评论的全局事件
+  window.addEventListener(
+    "quote-text-to-comment",
+    handleQuoteToComment as EventListener
+  );
 });
 
 // 处理全文解锁事件
@@ -741,6 +777,14 @@ watch(
   },
   { immediate: true }
 );
+
+onUnmounted(() => {
+  // 移除引用到评论的事件监听
+  window.removeEventListener(
+    "quote-text-to-comment",
+    handleQuoteToComment as EventListener
+  );
+});
 </script>
 
 <template>
@@ -752,7 +796,7 @@ watch(
       :article="articleWithCommentCount"
     />
 
-    <div class="layout">
+    <div class="layout" :class="{ 'no-waves-padding': !isWavesEnabled }">
       <main
         class="post-content-inner"
         :class="{ 'full-width': !isSidebarVisible }"
@@ -768,9 +812,31 @@ watch(
             :review-status="article.review_status"
           />
 
+          <!-- AI 播客播放器 - 当没有简介时单独显示 -->
+          <AIPodcastPlayer
+            v-if="
+              article &&
+              !isPreviewMode &&
+              !(article.summaries && article.summaries.length > 0)
+            "
+            :article-id="article.id"
+            :article-title="article.title"
+            :content-html="article.content_html"
+            :primary-color="article.primary_color"
+            :enable-a-i-podcast="article.extra_config?.enable_ai_podcast"
+          />
+
+          <!-- 文章摘要（包含内嵌的 AI 播客播放器） -->
           <AiSummary
             v-if="article.summaries && article.summaries.length > 0"
             :summary="article.summaries"
+            :article-id="article.id"
+            :article-title="article.title"
+            :content-html="article.content_html"
+            :primary-color="article.primary_color"
+            :enable-a-i-podcast="
+              !isPreviewMode && article.extra_config?.enable_ai_podcast
+            "
           />
           <PostOutdateNotice :update-date="article.updated_at" />
           <PostContent
@@ -825,15 +891,6 @@ watch(
       v-show="isCommentBarrageVisible && !isConsoleOpen"
       :gravatar-url="commentBarrageConfig.gravatarUrl"
       :default-gravatar-type="commentBarrageConfig.defaultGravatarType"
-    />
-
-    <!-- AI播客按钮 - 显示在左下角，音乐胶囊上方 -->
-    <AIPodcastButton
-      v-if="article && !isPreviewMode"
-      :article-id="article.id"
-      :article-title="article.title"
-      :content-html="article.content_html"
-      :primary-color="article.primary_color"
     />
   </div>
 </template>
@@ -951,6 +1008,11 @@ div#anzhiyu-footer-bar {
     flex: 1;
     width: 75%;
     min-width: 0;
+  }
+
+  // 当存在 post-radius-bottom 元素时，减少 padding-top
+  &.no-waves-padding {
+    padding-top: 10px;
   }
 }
 

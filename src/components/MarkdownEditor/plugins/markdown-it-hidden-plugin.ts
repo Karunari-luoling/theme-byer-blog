@@ -1,5 +1,63 @@
 import type MarkdownIt from "markdown-it";
 
+// 解析参数的辅助函数，支持带引号的值（包含空格、逗号、中文等）
+function parseParams(paramsStr: string): Record<string, string> {
+  const parsedParams: Record<string, string> = {};
+  let i = 0;
+
+  while (i < paramsStr.length) {
+    // 跳过空格
+    while (i < paramsStr.length && paramsStr[i] === " ") i++;
+    if (i >= paramsStr.length) break;
+
+    // 解析参数名
+    let paramName = "";
+    while (
+      i < paramsStr.length &&
+      paramsStr[i] !== "=" &&
+      paramsStr[i] !== " "
+    ) {
+      paramName += paramsStr[i];
+      i++;
+    }
+
+    if (i >= paramsStr.length || paramsStr[i] !== "=") break;
+    i++; // 跳过 '='
+
+    // 解析参数值
+    let paramValue = "";
+    if (i < paramsStr.length && paramsStr[i] === '"') {
+      // 带引号的值
+      i++; // 跳过开始引号
+      while (i < paramsStr.length && paramsStr[i] !== '"') {
+        paramValue += paramsStr[i];
+        i++;
+      }
+      if (i < paramsStr.length) i++; // 跳过结束引号
+    } else {
+      // 不带引号的值：查找下一个 key= 模式的位置
+      const remaining = paramsStr.slice(i);
+      // 匹配下一个 "空格+字母/数字+=" 的模式
+      const nextParamMatch = remaining.match(/\s+([a-zA-Z_][a-zA-Z0-9_]*)=/);
+      if (nextParamMatch) {
+        // 找到了下一个参数，取到它之前的内容作为当前值
+        paramValue = remaining.slice(0, nextParamMatch.index).trim();
+        i += nextParamMatch.index!;
+      } else {
+        // 没有下一个参数了，取剩余所有内容
+        paramValue = remaining.trim();
+        i = paramsStr.length;
+      }
+    }
+
+    if (paramName.trim()) {
+      parsedParams[paramName.trim()] = paramValue;
+    }
+  }
+
+  return parsedParams;
+}
+
 export default function customHiddenPlugin(md: MarkdownIt): void {
   // 块级隐藏内容
   function hiddenBlockRule(
@@ -66,19 +124,27 @@ export default function customHiddenPlugin(md: MarkdownIt): void {
 
     // 解析参数：display bg color content
     const paramsParts = params.slice(startTag.length).trim();
-    const paramRegex = /(\w+)=([^\s]+)/g;
-    const parsedParams: any = {};
-    let match;
-    while ((match = paramRegex.exec(paramsParts)) !== null) {
-      parsedParams[match[1]] = match[2];
-    }
+    const parsedParams = parseParams(paramsParts);
 
-    // 提取内容
+    // 提取内容（保留相对缩进）
+    // 修复：只移除与块标记同级的基础缩进，保留代码块内的额外缩进
     let content = "";
     for (let i = startLine + 1; i < nextLine; i++) {
-      const lineStart = state.bMarks[i] + state.tShift[i];
+      // 获取整行的原始内容（包含所有缩进）
+      const lineStart = state.bMarks[i];
       const lineEnd = state.eMarks[i];
-      const lineContent = state.src.slice(lineStart, lineEnd);
+      const fullLine = state.src.slice(lineStart, lineEnd);
+
+      // 计算当前行的实际缩进量（空格数）
+      let lineIndent = 0;
+      while (lineIndent < fullLine.length && fullLine[lineIndent] === " ") {
+        lineIndent++;
+      }
+
+      // 移除基础缩进（与块标记同级），保留相对缩进
+      const indentToRemove = Math.min(lineIndent, startIndent);
+      const lineContent = fullLine.slice(indentToRemove);
+
       content += lineContent + "\n";
     }
 
@@ -149,12 +215,7 @@ ${renderedContent}
     const content = contentMatch[2];
 
     // 解析参数
-    const paramRegex = /(\w+)=([^\s}]+)/g;
-    const parsedParams: any = {};
-    let match;
-    while ((match = paramRegex.exec(paramsStr)) !== null) {
-      parsedParams[match[1]] = match[2];
-    }
+    const parsedParams = parseParams(paramsStr);
 
     const displayText = parsedParams.display || "查看";
     const bgColor = parsedParams.bg || "";

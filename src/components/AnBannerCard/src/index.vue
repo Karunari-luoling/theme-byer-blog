@@ -56,9 +56,21 @@ const backgroundStyle = computed(() => ({
     : "none"
 }));
 
-// 判断是否是内部链接
+// 后端渲染的页面路径（不应使用 Vue Router 跳转）
+const BACKEND_RENDERED_EXTENSIONS = [".xml", ".json", ".txt", ".rss"];
+
+// 判断是否为后端渲染的页面（如 sitemap.xml, atom.xml, rss.xml 等）
+const isBackendRenderedPath = (link: string) => {
+  if (!link) return false;
+  const lowerLink = link.toLowerCase();
+  return BACKEND_RENDERED_EXTENSIONS.some(ext => lowerLink.endsWith(ext));
+};
+
+// 判断是否是内部链接（排除后端渲染的页面）
 const isInternalLink = computed(() => {
   if (!props.buttonLink) return false;
+  // 后端渲染的页面不应使用 Vue Router 跳转
+  if (isBackendRenderedPath(props.buttonLink)) return false;
   return (
     props.buttonLink.startsWith("/") &&
     !props.buttonLink.startsWith("//") &&

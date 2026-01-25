@@ -7,6 +7,7 @@ import AnDialog from "@/components/AnDialog/index.vue";
 import ImportExportDialog from "./components/ImportExportDialog.vue";
 
 import Delete from "@iconify-icons/ep/delete";
+import DeleteFilled from "@iconify-icons/ep/delete-filled";
 import EditPen from "@iconify-icons/ep/edit-pen";
 import Refresh from "@iconify-icons/ep/refresh";
 import AddFill from "@iconify-icons/ri/add-circle-line";
@@ -41,6 +42,7 @@ const {
   showTakedownDialog,
   takedowningArticle,
   takedownReason,
+  batchDeleting,
   onSizeChange,
   onCurrentChange,
   onSearch,
@@ -58,7 +60,8 @@ const {
   isPendingReview,
   handleSelectionChange,
   handleOpenImportExport,
-  handleImportExportSuccess
+  handleImportExportSuccess,
+  handleBatchDelete
 } = usePostManagement();
 
 function onFullscreen() {
@@ -191,6 +194,16 @@ function onFullscreen() {
           @click="handleOpenImportExport"
         >
           导出 ({{ selectedIds.length }})
+        </el-button>
+        <el-button
+          v-if="isAdmin && selectedIds.length > 0"
+          v-ripple
+          type="danger"
+          :icon="useRenderIcon(DeleteFilled)"
+          :loading="batchDeleting"
+          @click="handleBatchDelete"
+        >
+          删除 ({{ selectedIds.length }})
         </el-button>
       </template>
 
@@ -359,7 +372,7 @@ function onFullscreen() {
 
 <style lang="scss" scoped>
 .main {
-  margin: 24px;
+  margin: 20px !important;
 }
 
 // 普通用户提示
